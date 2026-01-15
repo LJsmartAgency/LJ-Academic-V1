@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -16,7 +15,6 @@ interface WorkFormPayload {
   languageEn: boolean;
   style?: string;
   tone?: string;
-  // campos futuros opcionais (por exemplo, PDF anexado)
   pdfName?: string;
   pdfText?: string;
 }
@@ -27,10 +25,10 @@ serve(async (req) => {
   }
 
   try {
-    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!geminiApiKey) {
-      console.error("GEMINI_API_KEY is not configured");
-      return new Response(JSON.stringify({ error: "Configuração do servidor em falta (GEMINI_API_KEY)." }), {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
+      return new Response(JSON.stringify({ error: "Configuração do servidor em falta (LOVABLE_API_KEY)." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -41,8 +39,7 @@ serve(async (req) => {
     const language = body.languageEn ? "en" : "pt-PT";
 
     const pdfContext = body.pdfText
-      ? `\n\nO trabalho deve ser baseado e alinhado com o seguinte conteúdo extraído de um PDF fornecido pelo utilizador. Não copies
-texto palavra por palavra; em vez disso, sintetiza, explica e organiza academicamente o conteúdo abaixo, mantendo o sentido principal:\n\n"""\n${body.pdfText.substring(0, 8000)}\n"""\n`
+      ? `\n\nO trabalho deve ser baseado e alinhado com o seguinte conteúdo extraído de um PDF fornecido pelo utilizador. Não copies texto palavra por palavra; em vez disso, sintetiza, explica e organiza academicamente o conteúdo abaixo, mantendo o sentido principal:\n\n"""\n${body.pdfText.substring(0, 8000)}\n"""\n`
       : "";
 
     const prompt = `Gere um trabalho académico completo, longo e detalhado, com a seguinte estrutura, escrevendo em ${language}:
@@ -82,36 +79,48 @@ Regras gerais do trabalho:
 - Mantém tom formal académico, com frases completas e linguagem técnica adequada ao nível de ensino.
 ${pdfContext}`;
 
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
-        geminiApiKey,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: "Você é um assistente académico especializado em criar trabalhos de pesquisa estruturados, completos e bem fundamentados." },
+          { role: "user", content: prompt }
+        ],
+      }),
+    });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente mais tarde." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos insuficientes. Adicione fundos à sua conta." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const errorText = await response.text();
-      console.error("Gemini API error", response.status, errorText);
-      return new Response(JSON.stringify({ error: "Erro ao gerar texto com Gemini." }), {
+      console.error("AI Gateway error", response.status, errorText);
+      return new Response(JSON.stringify({ error: "Erro ao gerar texto com IA." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const data = await response.json();
-    const text: string | undefined =
-      data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
+    const text: string = data.choices?.[0]?.message?.content ?? "";
 
     if (!text) {
-      console.error("Gemini response without text", JSON.stringify(data));
-      return new Response(JSON.stringify({ error: "Resposta vazia do Gemini." }), {
+      console.error("AI response without text", JSON.stringify(data));
+      return new Response(JSON.stringify({ error: "Resposta vazia da IA." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -170,7 +179,6 @@ ${pdfContext}`;
           refs.push(line);
           break;
         default:
-          // Se não houver secção activa, ignoramos (pode ser lixo ou cabeçalhos adicionais)
           break;
       }
     }
