@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,18 +25,22 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("Supabase environment variables not configured");
-      return new Response(JSON.stringify({ error: "Configuração do servidor em falta." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Uses your own provider key stored in your Supabase project secrets
+    // (Project Settings -> Secrets)
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({
+          error:
+            "Configuração em falta: defina a secret GEMINI_API_KEY no seu projeto Supabase (Settings → Secrets).",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     const body = (await req.json()) as WorkFormPayload;
 
@@ -84,67 +87,44 @@ Regras gerais do trabalho:
 - Mantém tom formal académico, com frases completas e linguagem técnica adequada ao nível de ensino.
 ${pdfContext}`;
 
-    console.log("Calling Supabase AI...");
+    console.log("Calling Gemini...");
 
-    // Use Supabase AI via the built-in inference API
-    const { data, error: aiError } = await supabase.functions.invoke("ai", {
-      body: {
-        model: "gemini-1.5-flash",
-        messages: [
-          { role: "system", content: "Você é um assistente académico especializado em criar trabalhos de pesquisa estruturados, completos e bem fundamentados." },
-          { role: "user", content: prompt }
-        ],
+    const url =
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+
+    const geminiResp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.7,
+        },
+      }),
     });
 
-    if (aiError) {
-      console.error("Supabase AI error:", aiError);
-      
-      // Fallback: Try using the Supabase AI inference endpoint directly
-      const aiResponse = await fetch(`${supabaseUrl}/functions/v1/ai/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${supabaseAnonKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gemini-1.5-flash",
-          messages: [
-            { role: "system", content: "Você é um assistente académico especializado em criar trabalhos de pesquisa estruturados, completos e bem fundamentados." },
-            { role: "user", content: prompt }
-          ],
-        }),
-      });
-
-      if (!aiResponse.ok) {
-        const errorText = await aiResponse.text();
-        console.error("AI fallback error:", aiResponse.status, errorText);
-        return new Response(JSON.stringify({ error: "Erro ao gerar texto com IA. Verifique se a IA está ativada no seu projeto Supabase." }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const fallbackData = await aiResponse.json();
-      const text: string = fallbackData.choices?.[0]?.message?.content ?? "";
-      
-      if (!text) {
-        return new Response(JSON.stringify({ error: "Resposta vazia da IA." }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      return new Response(JSON.stringify({ work: parseAcademicWork(text, body) }), {
-        status: 200,
+    if (!geminiResp.ok) {
+      const errorText = await geminiResp.text();
+      console.error("Gemini error", geminiResp.status, errorText);
+      return new Response(JSON.stringify({ error: "Erro ao gerar texto com IA." }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const text: string = data?.choices?.[0]?.message?.content ?? "";
+    const geminiData = await geminiResp.json();
+    const text: string =
+      geminiData?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).filter(Boolean).join("\n") ?? "";
 
     if (!text) {
-      console.error("AI response without text", JSON.stringify(data));
+      console.error("Gemini response without text", JSON.stringify(geminiData));
       return new Response(JSON.stringify({ error: "Resposta vazia da IA." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
