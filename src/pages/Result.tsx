@@ -146,9 +146,9 @@ const downloadPdf = (work: AcademicWork) => {
     y += lineHeight;
   });
 
-  // Página 2: Título (+ resumo)
-  const resumoTexto = `Resumo\n\n${work.summary}`;
-  addSection("Título", `${work.title}\n\n${resumoTexto}`, false);
+  // Página 2: Resumo (texto gerado pela IA)
+  const resumoSection = work.sections.find((s) => s.heading.toLowerCase().startsWith("resumo"));
+  addSection("Resumo", resumoSection?.content || work.summary, false);
 
   const intro = work.sections.find((s) => s.heading.toLowerCase().startsWith("introdu"));
   const dev = work.sections.find((s) => s.heading.toLowerCase().startsWith("desenvolv"));
