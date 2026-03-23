@@ -59,6 +59,11 @@ PÁGINA 1 - ÍNDICE
 
 Depois do índice, escreva o texto completo do trabalho com as secções seguintes, cada uma começando em linha própria com o cabeçalho em maiúsculas exactamente como abaixo (sem repetir o índice dentro das secções):
 
+RESUMO
+- Escreva um resumo académico formal do trabalho, com 150 a 300 palavras.
+- Deve sintetizar o objectivo, a metodologia, os principais resultados e as conclusões do trabalho.
+- Não repita a introdução; o resumo deve ser autónomo e dar ao leitor uma visão geral completa do trabalho.
+
 INTRODUÇÃO
 - Contextualize o tema e apresente claramente: o problema de investigação, a justificativa, o objectivo geral, os objectivos específicos, a delimitação do estudo (tempo, espaço, foco) e uma breve descrição da metodologia (tipo de pesquisa, abordagem e procedimentos).
 - Use 3 a 6 parágrafos coesos, sem explicações técnicas profundas, fórmulas ou listas longas (isso deve ficar em DESENVOLVIMENTO).
