@@ -54,7 +54,7 @@ serve(async (req) => {
 
 PÁGINA 1 - ÍNDICE
 - Comece com o título "ÍNDICE".
-- Em seguida liste, numerados, todos os títulos e subtítulos do trabalho (por exemplo: "1. INTRODUÇÃO", "2. DESENVOLVIMENTO", "2.1. Conceitos fundamentais", etc.).
+- Em seguida liste, numerados, todos os títulos e subtítulos do trabalho (por exemplo: "1. RESUMO", "2. INTRODUÇÃO", "3. DESENVOLVIMENTO", "3.1. Conceitos fundamentais", etc.).
 - IMPORTANTE: Nesta página de índice NÃO escreva nenhum parágrafo de conteúdo da introdução, desenvolvimento, conclusão ou referências. Apenas a lista.
 
 Depois do índice, escreva o texto completo do trabalho com as secções seguintes, cada uma começando em linha própria com o cabeçalho em maiúsculas exactamente como abaixo (sem repetir o índice dentro das secções):
