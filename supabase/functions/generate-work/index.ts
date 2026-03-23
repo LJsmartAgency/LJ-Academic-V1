@@ -54,10 +54,15 @@ serve(async (req) => {
 
 PÁGINA 1 - ÍNDICE
 - Comece com o título "ÍNDICE".
-- Em seguida liste, numerados, todos os títulos e subtítulos do trabalho (por exemplo: "1. INTRODUÇÃO", "2. DESENVOLVIMENTO", "2.1. Conceitos fundamentais", etc.).
+- Em seguida liste, numerados, todos os títulos e subtítulos do trabalho (por exemplo: "1. RESUMO", "2. INTRODUÇÃO", "3. DESENVOLVIMENTO", "3.1. Conceitos fundamentais", etc.).
 - IMPORTANTE: Nesta página de índice NÃO escreva nenhum parágrafo de conteúdo da introdução, desenvolvimento, conclusão ou referências. Apenas a lista.
 
 Depois do índice, escreva o texto completo do trabalho com as secções seguintes, cada uma começando em linha própria com o cabeçalho em maiúsculas exactamente como abaixo (sem repetir o índice dentro das secções):
+
+RESUMO
+- Escreva um resumo académico formal do trabalho, com 150 a 300 palavras.
+- Deve sintetizar o objectivo, a metodologia, os principais resultados e as conclusões do trabalho.
+- Não repita a introdução; o resumo deve ser autónomo e dar ao leitor uma visão geral completa do trabalho.
 
 INTRODUÇÃO
 - Contextualize o tema e apresente claramente: o problema de investigação, a justificativa, o objectivo geral, os objectivos específicos, a delimitação do estudo (tempo, espaço, foco) e uma breve descrição da metodologia (tipo de pesquisa, abordagem e procedimentos).
@@ -148,13 +153,14 @@ ${pdfContext}`;
 
 function parseAcademicWork(text: string, body: WorkFormPayload) {
   let indexText = "";
+  let resumoText = "";
   let introText = "";
   let devText = "";
   let conclText = "";
   const refs: string[] = [];
 
   const lines = text.split(/\n+/).map((l) => l.trim());
-  let current: "" | "indice" | "intro" | "dev" | "concl" | "refs" = "";
+  let current: "" | "indice" | "resumo" | "intro" | "dev" | "concl" | "refs" = "";
 
   for (const raw of lines) {
     const line = raw.trim();
@@ -163,6 +169,10 @@ function parseAcademicWork(text: string, body: WorkFormPayload) {
 
     if (upper.startsWith("ÍNDICE") || upper.startsWith("INDICE")) {
       current = "indice";
+      continue;
+    }
+    if (upper.startsWith("RESUMO")) {
+      current = "resumo";
       continue;
     }
     if (upper.startsWith("INTRODUÇÃO") || upper.startsWith("INTRODUCAO")) {
@@ -186,6 +196,9 @@ function parseAcademicWork(text: string, body: WorkFormPayload) {
       case "indice":
         indexText += (indexText ? "\n" : "") + line;
         break;
+      case "resumo":
+        resumoText += (resumoText ? "\n" : "") + line;
+        break;
       case "intro":
         introText += (introText ? "\n" : "") + line;
         break;
@@ -203,12 +216,15 @@ function parseAcademicWork(text: string, body: WorkFormPayload) {
     }
   }
 
+  const summary = resumoText ||
+    `Trabalho académico do tipo ${body.workType.toLowerCase()} em ${body.area.toLowerCase()}, com foco em "${body.theme}".`;
+
   return {
     title: `${body.workType} em ${body.area}: ${body.theme.substring(0, 80)}`,
-    summary:
-      `Trabalho académico do tipo ${body.workType.toLowerCase()} em ${body.area.toLowerCase()}, com foco em "${body.theme}".`,
+    summary,
     sections: [
       { heading: "Índice", content: indexText },
+      { heading: "Resumo", content: resumoText },
       { heading: "Introdução", content: introText },
       { heading: "Desenvolvimento", content: devText },
       { heading: "Conclusão", content: conclText },

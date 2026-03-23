@@ -146,9 +146,9 @@ const downloadPdf = (work: AcademicWork) => {
     y += lineHeight;
   });
 
-  // Página 2: Título (+ resumo)
-  const resumoTexto = `Resumo\n\n${work.summary}`;
-  addSection("Título", `${work.title}\n\n${resumoTexto}`, false);
+  // Página 2: Resumo (texto gerado pela IA)
+  const resumoSection = work.sections.find((s) => s.heading.toLowerCase().startsWith("resumo"));
+  addSection("Resumo", resumoSection?.content || work.summary, false);
 
   const intro = work.sections.find((s) => s.heading.toLowerCase().startsWith("introdu"));
   const dev = work.sections.find((s) => s.heading.toLowerCase().startsWith("desenvolv"));
@@ -184,29 +184,15 @@ const downloadWord = async (work: AcademicWork) => {
   }
 
 
-  // Página 2: Título + Resumo
+  // Página 2: Resumo
+  const resumoSectionWord = work.sections.find((s) => s.heading.toLowerCase().startsWith("resumo"));
   paragraphs.push(
     new Paragraph({
       pageBreakBefore: true,
-      children: [new TextRun({ text: "Título", bold: true })],
-    }),
-  );
-  paragraphs.push(
-    new Paragraph({
-      children: [new TextRun({ text: work.title })],
-    }),
-  );
-  paragraphs.push(
-    new Paragraph({
-      spacing: { before: 240 },
       children: [new TextRun({ text: "Resumo", bold: true })],
     }),
   );
-  paragraphs.push(
-    new Paragraph({
-      children: [new TextRun({ text: work.summary })],
-    }),
-  );
+  paragraphs.push(...markdownToParagraphs(resumoSectionWord?.content || work.summary));
 
   const intro = work.sections.find((s) => s.heading.toLowerCase().startsWith("introdu"));
   const dev = work.sections.find((s) => s.heading.toLowerCase().startsWith("desenvolv"));
@@ -405,16 +391,13 @@ const Result = () => {
         <main className="grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)]">
           <section className="space-y-4 rounded-xl border border-border bg-card/70 p-6 shadow-sm">
             <h2 className="text-xl font-semibold leading-snug">{work.title}</h2>
-            <div className="space-y-3 text-sm text-muted-foreground">
-              <h3 className="text-sm font-semibold text-foreground">Resumo</h3>
-              <p>{work.summary}</p>
-            </div>
 
             <div className="space-y-10 text-sm leading-relaxed">
               {(() => {
                 const indiceSection = work.sections.find(
                   (s) => s.heading.toLowerCase().startsWith("índice") || s.heading.toLowerCase().startsWith("indice"),
                 );
+                const resumoSection = work.sections.find((s) => s.heading.toLowerCase().startsWith("resumo"));
                 const intro = work.sections.find((s) => s.heading.toLowerCase().startsWith("introdu"));
                 const dev = work.sections.find((s) => s.heading.toLowerCase().startsWith("desenvolv"));
                 const conc = work.sections.find((s) => s.heading.toLowerCase().startsWith("conclus"));
@@ -435,9 +418,7 @@ const Result = () => {
                 return (
                   <>
                     {indiceSection && renderSection(indiceSection.heading, indiceSection.content, { normalize: false })}
-
-                    {renderSection("Resumo", work.summary)}
-
+                    {resumoSection && renderSection("Resumo", resumoSection.content)}
                     {intro && renderSection("Introdução", intro.content)}
                     {dev && renderSection("Desenvolvimento", dev.content)}
                     {conc && renderSection("Conclusão", conc.content)}
