@@ -184,29 +184,15 @@ const downloadWord = async (work: AcademicWork) => {
   }
 
 
-  // Página 2: Título + Resumo
+  // Página 2: Resumo
+  const resumoSectionWord = work.sections.find((s) => s.heading.toLowerCase().startsWith("resumo"));
   paragraphs.push(
     new Paragraph({
       pageBreakBefore: true,
-      children: [new TextRun({ text: "Título", bold: true })],
-    }),
-  );
-  paragraphs.push(
-    new Paragraph({
-      children: [new TextRun({ text: work.title })],
-    }),
-  );
-  paragraphs.push(
-    new Paragraph({
-      spacing: { before: 240 },
       children: [new TextRun({ text: "Resumo", bold: true })],
     }),
   );
-  paragraphs.push(
-    new Paragraph({
-      children: [new TextRun({ text: work.summary })],
-    }),
-  );
+  paragraphs.push(...markdownToParagraphs(resumoSectionWord?.content || work.summary));
 
   const intro = work.sections.find((s) => s.heading.toLowerCase().startsWith("introdu"));
   const dev = work.sections.find((s) => s.heading.toLowerCase().startsWith("desenvolv"));
