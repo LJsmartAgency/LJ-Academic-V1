@@ -83,7 +83,10 @@ São apresentadas considerações finais, limitações do estudo e sugestões de
     "AUTOR, A. A.; AUTOR, B. B. Referência complementar sobre o tema.",
   ];
 
+  const resumo = `Este ${workTypeLabel.toLowerCase()} analisa o tema "${data.theme}" no âmbito de ${data.area.toLowerCase()}, ao nível do ${educationLabel.toLowerCase()}. O objectivo central é compreender os principais conceitos, implicações e contribuições teóricas associadas ao tema. A metodologia baseia-se numa revisão bibliográfica de fontes clássicas e contemporâneas. Os resultados indicam a relevância do tema para o campo de estudo e apontam caminhos para investigações futuras.`;
+
   const sections: AcademicWorkSection[] = [
+    { heading: "Resumo", content: resumo },
     { heading: "Introdução", content: intro },
     { heading: "Desenvolvimento", content: development + extraParagraph },
     { heading: "Conclusão", content: conclusion },

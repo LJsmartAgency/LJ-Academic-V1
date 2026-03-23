@@ -153,13 +153,14 @@ ${pdfContext}`;
 
 function parseAcademicWork(text: string, body: WorkFormPayload) {
   let indexText = "";
+  let resumoText = "";
   let introText = "";
   let devText = "";
   let conclText = "";
   const refs: string[] = [];
 
   const lines = text.split(/\n+/).map((l) => l.trim());
-  let current: "" | "indice" | "intro" | "dev" | "concl" | "refs" = "";
+  let current: "" | "indice" | "resumo" | "intro" | "dev" | "concl" | "refs" = "";
 
   for (const raw of lines) {
     const line = raw.trim();
@@ -168,6 +169,10 @@ function parseAcademicWork(text: string, body: WorkFormPayload) {
 
     if (upper.startsWith("ÍNDICE") || upper.startsWith("INDICE")) {
       current = "indice";
+      continue;
+    }
+    if (upper.startsWith("RESUMO")) {
+      current = "resumo";
       continue;
     }
     if (upper.startsWith("INTRODUÇÃO") || upper.startsWith("INTRODUCAO")) {
@@ -191,6 +196,9 @@ function parseAcademicWork(text: string, body: WorkFormPayload) {
       case "indice":
         indexText += (indexText ? "\n" : "") + line;
         break;
+      case "resumo":
+        resumoText += (resumoText ? "\n" : "") + line;
+        break;
       case "intro":
         introText += (introText ? "\n" : "") + line;
         break;
@@ -208,12 +216,15 @@ function parseAcademicWork(text: string, body: WorkFormPayload) {
     }
   }
 
+  const summary = resumoText ||
+    `Trabalho académico do tipo ${body.workType.toLowerCase()} em ${body.area.toLowerCase()}, com foco em "${body.theme}".`;
+
   return {
     title: `${body.workType} em ${body.area}: ${body.theme.substring(0, 80)}`,
-    summary:
-      `Trabalho académico do tipo ${body.workType.toLowerCase()} em ${body.area.toLowerCase()}, com foco em "${body.theme}".`,
+    summary,
     sections: [
       { heading: "Índice", content: indexText },
+      { heading: "Resumo", content: resumoText },
       { heading: "Introdução", content: introText },
       { heading: "Desenvolvimento", content: devText },
       { heading: "Conclusão", content: conclText },
