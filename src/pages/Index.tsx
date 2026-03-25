@@ -82,7 +82,7 @@ const Index = () => {
 
           {/* Subheadline */}
           <p className="animate-fade-up-delay-2 mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Preencha o tema, escolha o nível e receba um PDF estruturado com introdução, desenvolvimento, conclusão e referências — pronto para entregar.
+            Preencha o tema, escolha o nível e receba um documento Word estruturado com introdução, desenvolvimento, conclusão e referências — pronto para entregar.
           </p>
 
           {/* CTA */}
