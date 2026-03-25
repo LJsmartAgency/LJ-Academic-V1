@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FileText, Layers, Download, Zap, Shield, Clock, ChevronRight, Sparkles } from "lucide-react";
+import trabalhoExemplo from "@/assets/trabalho-exemplo.jpg";
 
 const Index = () => {
   useEffect(() => {
     document.title = "LJsmart-Academic | Trabalhos Académicos em Minutos";
 
-    const description = "Receba seu trabalho académico completo em minutos. PDF pronto para entregar.";
+    const description = "Receba seu trabalho académico completo em minutos. Word pronto para entregar.";
     let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!meta) {
       meta = document.createElement("meta");
@@ -81,7 +82,7 @@ const Index = () => {
 
           {/* Subheadline */}
           <p className="animate-fade-up-delay-2 mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Preencha o tema, escolha o nível e receba um PDF estruturado com introdução, desenvolvimento, conclusão e referências — pronto para entregar.
+            Preencha o tema, escolha o nível e receba um documento Word estruturado com introdução, desenvolvimento, conclusão e referências — pronto para entregar.
           </p>
 
           {/* CTA */}
@@ -104,18 +105,19 @@ const Index = () => {
             <div className="glass-card animate-float rounded-2xl p-6 shadow-2xl shadow-black/30">
               <div className="flex items-center gap-3 border-b border-border/30 pb-4">
                 <FileText size={20} className="text-[hsl(263,70%,58%)]" />
-                <span className="font-display text-sm font-semibold">Trabalho_Academico.pdf</span>
+                <span className="font-display text-sm font-semibold">Trabalho_Academico.docx</span>
                 <span className="ml-auto rounded-full bg-[hsl(142,71%,45%)/0.15] px-2.5 py-0.5 text-xs font-medium text-[hsl(142,71%,45%)]">
                   Pronto
                 </span>
               </div>
-              <div className="mt-4 space-y-2.5 text-left">
-                <div className="h-3 w-3/4 rounded-full bg-muted/60" />
-                <div className="h-3 w-full rounded-full bg-muted/40" />
-                <div className="h-3 w-5/6 rounded-full bg-muted/40" />
-                <div className="mt-4 h-3 w-2/3 rounded-full bg-muted/60" />
-                <div className="h-3 w-full rounded-full bg-muted/40" />
-                <div className="h-3 w-4/5 rounded-full bg-muted/40" />
+              <div className="mt-4 overflow-hidden rounded-lg">
+                <img
+                  src={trabalhoExemplo}
+                  alt="Exemplo de trabalho académico gerado"
+                  className="w-full rounded-lg object-cover"
+                  width={640}
+                  height={800}
+                />
               </div>
             </div>
           </div>
@@ -128,7 +130,7 @@ const Index = () => {
           {[
             { value: "1.000+", label: "Trabalhos gerados" },
             { value: "< 2 min", label: "Tempo médio" },
-            { value: "PDF", label: "Pronto para entregar" },
+            { value: "Word", label: "Pronto para entregar" },
             { value: "100%", label: "Estruturado" },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
@@ -171,7 +173,7 @@ const Index = () => {
                 icon: <Download size={28} />,
                 step: "03",
                 title: "Baixe seu trabalho",
-                desc: "Receba o trabalho completo em PDF ou Word, pronto para revisar e entregar.",
+                desc: "Receba o trabalho completo em Word, pronto para revisar e entregar.",
               },
             ].map((item) => (
               <div
