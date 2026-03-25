@@ -105,18 +105,19 @@ const Index = () => {
             <div className="glass-card animate-float rounded-2xl p-6 shadow-2xl shadow-black/30">
               <div className="flex items-center gap-3 border-b border-border/30 pb-4">
                 <FileText size={20} className="text-[hsl(263,70%,58%)]" />
-                <span className="font-display text-sm font-semibold">Trabalho_Academico.pdf</span>
+                <span className="font-display text-sm font-semibold">Trabalho_Academico.docx</span>
                 <span className="ml-auto rounded-full bg-[hsl(142,71%,45%)/0.15] px-2.5 py-0.5 text-xs font-medium text-[hsl(142,71%,45%)]">
                   Pronto
                 </span>
               </div>
-              <div className="mt-4 space-y-2.5 text-left">
-                <div className="h-3 w-3/4 rounded-full bg-muted/60" />
-                <div className="h-3 w-full rounded-full bg-muted/40" />
-                <div className="h-3 w-5/6 rounded-full bg-muted/40" />
-                <div className="mt-4 h-3 w-2/3 rounded-full bg-muted/60" />
-                <div className="h-3 w-full rounded-full bg-muted/40" />
-                <div className="h-3 w-4/5 rounded-full bg-muted/40" />
+              <div className="mt-4 overflow-hidden rounded-lg">
+                <img
+                  src={trabalhoExemplo}
+                  alt="Exemplo de trabalho académico gerado"
+                  className="w-full rounded-lg object-cover"
+                  width={640}
+                  height={800}
+                />
               </div>
             </div>
           </div>
