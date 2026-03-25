@@ -130,7 +130,7 @@ const Index = () => {
           {[
             { value: "1.000+", label: "Trabalhos gerados" },
             { value: "< 2 min", label: "Tempo médio" },
-            { value: "PDF", label: "Pronto para entregar" },
+            { value: "Word", label: "Pronto para entregar" },
             { value: "100%", label: "Estruturado" },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
