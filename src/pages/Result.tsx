@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { jsPDF } from "jspdf";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import ReactMarkdown from "react-markdown";
 
