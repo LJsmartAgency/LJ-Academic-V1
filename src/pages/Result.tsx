@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { jsPDF } from "jspdf";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import ReactMarkdown from "react-markdown";
 
@@ -81,91 +80,6 @@ const buildPlainText = (work: AcademicWork): string => {
   return `${work.title.toUpperCase()}\n\nRESUMO\n\n${work.summary}\n\n${sectionsText}\n\n${referencesText}`;
 };
 
-const downloadPdf = (work: AcademicWork) => {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
-  const margin = 72; // 2,54 cm
-  const maxWidth = 460;
-  const lineHeight = 18;
-
-  doc.setFont("Times", "Normal");
-  doc.setFontSize(12);
-
-  const addSection = (title: string, content: string, isFirstPage = false) => {
-    if (!isFirstPage) {
-      doc.addPage();
-    }
-    let y = margin;
-    doc.setFont("Times", "Bold");
-    doc.text(title, margin, y);
-    y += lineHeight * 1.5;
-
-    const normalizedWithMarkdown = normalizeSubtitles(content);
-    const rawParagraphs = normalizedWithMarkdown.split(/\n{2,}/).filter(Boolean);
-
-    rawParagraphs.forEach((rawParagraph) => {
-      const cleanParagraph = stripMarkdown(rawParagraph);
-      if (!cleanParagraph.trim()) return;
-
-      const isNumberedSubtitle = /^\d+(?:\.\d+)*\s+.+/.test(cleanParagraph.trim());
-      const isBoldMarkdownSubtitle = /^\s*\*\*[^*]+\*\*\s*$/.test(rawParagraph.trim());
-
-      // Títulos e subtítulos sempre a negrito, mas sem marcar com markdown no PDF
-      if (isNumberedSubtitle || isBoldMarkdownSubtitle) {
-        doc.setFont("Times", "Bold");
-      } else {
-        doc.setFont("Times", "Normal");
-      }
-
-      const lines = doc.splitTextToSize(cleanParagraph, maxWidth);
-      lines.forEach((line) => {
-        if (y > 800) {
-          doc.addPage();
-          y = margin;
-        }
-        doc.text(line, margin, y, { align: "justify", maxWidth });
-        y += lineHeight;
-      });
-      y += lineHeight * 0.5; // espaço extra entre parágrafos
-    });
-  };
-
-  // Página 1: Índice (texto vindo da IA)
-  const indiceSection = work.sections.find((s) => s.heading.toLowerCase().startsWith("índice") || s.heading.toLowerCase().startsWith("indice"));
-  let y = margin;
-  doc.setFont("Times", "Bold");
-  doc.text("Índice", margin, y);
-  y += lineHeight * 1.5;
-  doc.setFont("Times", "Normal");
-
-  const indiceLines = (indiceSection?.content || "")
-    .split(/\n+/)
-    .filter(Boolean)
-    .map((item) => stripMarkdown(item));
-  indiceLines.forEach((item) => {
-    doc.text(item, margin, y);
-    y += lineHeight;
-  });
-
-  // Página 2: Resumo (texto gerado pela IA)
-  const resumoSection = work.sections.find((s) => s.heading.toLowerCase().startsWith("resumo"));
-  addSection("Resumo", resumoSection?.content || work.summary, false);
-
-  const intro = work.sections.find((s) => s.heading.toLowerCase().startsWith("introdu"));
-  const dev = work.sections.find((s) => s.heading.toLowerCase().startsWith("desenvolv"));
-  const conc = work.sections.find((s) => s.heading.toLowerCase().startsWith("conclus"));
-
-  if (intro) addSection("Introdução", normalizeSubtitles(intro.content));
-  if (dev) addSection("Desenvolvimento", normalizeSubtitles(dev.content));
-  if (conc) addSection("Conclusão", normalizeSubtitles(conc.content));
-
-  const refsContent =
-    work.references.length > 0
-      ? work.references.map((r) => `- ${r}`).join("\n")
-      : "Adicione aqui as referências bibliográficas com base nas fontes que utilizou.";
-  addSection("Referência bibliográfica", refsContent);
-
-  doc.save("trabalho-academico.pdf");
-};
 
 const downloadWord = async (work: AcademicWork) => {
   const paragraphs: Paragraph[] = [];
@@ -374,7 +288,7 @@ const Result = () => {
               <p className="text-xs font-semibold uppercase tracking-wide text-primary">LJsmart-Academic</p>
               <h1 className="text-2xl font-bold tracking-tight">Trabalho gerado</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Reveja o texto abaixo. Pode copiar, descarregar em PDF ou Word e fazer os ajustes finais.
+                Reveja o texto abaixo. Pode copiar, descarregar em Word e fazer os ajustes finais.
               </p>
             </div>
           </div>
