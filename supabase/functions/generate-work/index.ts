@@ -5,6 +5,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Simple in-memory rate limiter: max 10 requests per IP per 10 minutes
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT_MAX;
+}
+
 interface WorkFormPayload {
   educationLevel: string;
   workType: string;
@@ -25,6 +41,16 @@ serve(async (req) => {
   }
 
   try {
+    // Rate limit by IP
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+                     req.headers.get("cf-connecting-ip") || "unknown";
+    if (isRateLimited(clientIp)) {
+      return new Response(
+        JSON.stringify({ error: "Demasiados pedidos. Aguarde alguns minutos e tente novamente." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // Uses your own provider key stored in your Supabase project secrets
     // (Project Settings -> Secrets)
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
