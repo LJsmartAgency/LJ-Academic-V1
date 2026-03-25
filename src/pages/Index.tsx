@@ -7,7 +7,7 @@ const Index = () => {
   useEffect(() => {
     document.title = "LJsmart-Academic | Trabalhos Académicos em Minutos";
 
-    const description = "Receba seu trabalho académico completo em minutos. PDF pronto para entregar.";
+    const description = "Receba seu trabalho académico completo em minutos. Word pronto para entregar.";
     let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!meta) {
       meta = document.createElement("meta");
