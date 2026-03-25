@@ -173,7 +173,7 @@ const Index = () => {
                 icon: <Download size={28} />,
                 step: "03",
                 title: "Baixe seu trabalho",
-                desc: "Receba o trabalho completo em PDF ou Word, pronto para revisar e entregar.",
+                desc: "Receba o trabalho completo em Word, pronto para revisar e entregar.",
               },
             ].map((item) => (
               <div
