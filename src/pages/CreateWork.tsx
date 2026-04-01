@@ -69,6 +69,7 @@ const CreateWork = () => {
       workType: "Artigo científico",
       area: "",
       theme: "",
+      description: "",
       pages: "10",
       languagePtBr: true,
       languageEn: false,
@@ -76,6 +77,33 @@ const CreateWork = () => {
       tone: "Formal académico",
     },
   });
+
+  const handleGenerateDescription = async () => {
+    const theme = form.getValues("theme");
+    if (!theme || theme.length < 3) {
+      toast({ title: "Informe o tema primeiro", description: "Escreva o tema do trabalho antes de gerar a descrição.", variant: "destructive" });
+      return;
+    }
+    setIsGeneratingDesc(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-description", {
+        body: {
+          theme,
+          area: form.getValues("area"),
+          educationLevel: form.getValues("educationLevel"),
+        },
+      });
+      if (error || !data?.description) {
+        toast({ title: "Erro", description: "Não foi possível gerar a descrição. Tente novamente.", variant: "destructive" });
+      } else {
+        form.setValue("description", data.description, { shouldValidate: true });
+      }
+    } catch {
+      toast({ title: "Erro", description: "Falha ao contactar o servidor.", variant: "destructive" });
+    } finally {
+      setIsGeneratingDesc(false);
+    }
+  };
 
   const onSubmit = async (values: WorkFormValues) => {
     try {
