@@ -64,7 +64,7 @@ export const generateAcademicWork = (data: WorkFormValues): AcademicWork => {
     data.theme
   }" no contexto de ${data.area.toLowerCase()}, considerando as demandas atuais do nível ${educationLabel.toLowerCase()}.
 
-A introdução apresenta o problema central, os objetivos geral e específicos, a justificativa da relevância do estudo para o campo de ${data.area.toLowerCase()}, a delimitação do objeto de estudo (contexto, recorte temporal e/ou espacial) e uma breve descrição da metodologia adotada.`;
+${data.description ? data.description + "\n\n" : ""}A introdução apresenta o problema central, os objetivos geral e específicos, a justificativa da relevância do estudo para o campo de ${data.area.toLowerCase()}, a delimitação do objeto de estudo (contexto, recorte temporal e/ou espacial) e uma breve descrição da metodologia adotada.`;
 
   const development = `No desenvolvimento, são discutidos os principais conceitos teóricos relacionados a "${
     data.theme
