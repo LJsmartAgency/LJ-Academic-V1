@@ -7,8 +7,13 @@ export const workFormSchema = z
     area: z.string().min(2, "Informe a área ou disciplina").max(120, "Use até 120 caracteres"),
     theme: z
       .string()
-      .min(10, "Descreva um pouco melhor o tema")
-      .max(600, "Resuma o tema em até 600 caracteres"),
+      .min(3, "Informe o tema do trabalho")
+      .max(200, "Use até 200 caracteres para o tema"),
+    description: z
+      .string()
+      .max(600, "Resuma a descrição em até 600 caracteres")
+      .optional()
+      .default(""),
     pages: z
       .string()
       .min(1, "Informe a quantidade de páginas")
