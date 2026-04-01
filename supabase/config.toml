@@ -2,3 +2,6 @@ project_id = "nrrvcgcptlczalbeyfbz"
 
 [functions.generate-work]
 verify_jwt = false
+
+[functions.generate-description]
+verify_jwt = false

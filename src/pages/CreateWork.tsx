@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
+import { Sparkles, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -11,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { workFormSchema, type WorkFormValues, generateAcademicWork, type AcademicWork } from "@/lib/generator";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker?url";
 
@@ -18,7 +20,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker as string;
 
 const CreateWork = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
 
   useEffect(() => {
     document.title = "Criar trabalho | LJsmart-Academic";
@@ -65,6 +69,7 @@ const CreateWork = () => {
       workType: "Artigo científico",
       area: "",
       theme: "",
+      description: "",
       pages: "10",
       languagePtBr: true,
       languageEn: false,
@@ -72,6 +77,33 @@ const CreateWork = () => {
       tone: "Formal académico",
     },
   });
+
+  const handleGenerateDescription = async () => {
+    const theme = form.getValues("theme");
+    if (!theme || theme.length < 3) {
+      toast({ title: "Informe o tema primeiro", description: "Escreva o tema do trabalho antes de gerar a descrição.", variant: "destructive" });
+      return;
+    }
+    setIsGeneratingDesc(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-description", {
+        body: {
+          theme,
+          area: form.getValues("area"),
+          educationLevel: form.getValues("educationLevel"),
+        },
+      });
+      if (error || !data?.description) {
+        toast({ title: "Erro", description: "Não foi possível gerar a descrição. Tente novamente.", variant: "destructive" });
+      } else {
+        form.setValue("description", data.description, { shouldValidate: true });
+      }
+    } catch {
+      toast({ title: "Erro", description: "Falha ao contactar o servidor.", variant: "destructive" });
+    } finally {
+      setIsGeneratingDesc(false);
+    }
+  };
 
   const onSubmit = async (values: WorkFormValues) => {
     try {
@@ -209,9 +241,8 @@ const CreateWork = () => {
                   <FormItem>
                     <FormLabel>Tema do trabalho</FormLabel>
                     <FormControl>
-                      <Textarea
-                        rows={5}
-                        placeholder="Descreva o foco do trabalho, os objectivos principais e o problema a estudar."
+                      <Input
+                        placeholder="Ex.: Impacto da Tecnologia na Educação"
                         {...field}
                       />
                     </FormControl>
@@ -219,6 +250,43 @@ const CreateWork = () => {
                   </FormItem>
                 )}
               />
+
+              <div className="space-y-2">
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição detalhada (opcional)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          rows={4}
+                          placeholder="Ex: O trabalho deve abordar temas como: impacto da tecnologia na educação moderna, impacto da tecnologia na educação tradicional, etc."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateDescription}
+                    disabled={isGeneratingDesc}
+                    className="gap-2"
+                  >
+                    {isGeneratingDesc ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    {isGeneratingDesc ? "A gerar..." : "Melhorar Descrição"}
+                  </Button>
+                </div>
+              </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField

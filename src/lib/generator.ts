@@ -7,8 +7,13 @@ export const workFormSchema = z
     area: z.string().min(2, "Informe a área ou disciplina").max(120, "Use até 120 caracteres"),
     theme: z
       .string()
-      .min(10, "Descreva um pouco melhor o tema")
-      .max(600, "Resuma o tema em até 600 caracteres"),
+      .min(3, "Informe o tema do trabalho")
+      .max(200, "Use até 200 caracteres para o tema"),
+    description: z
+      .string()
+      .max(600, "Resuma a descrição em até 600 caracteres")
+      .optional()
+      .default(""),
     pages: z
       .string()
       .min(1, "Informe a quantidade de páginas")
@@ -59,7 +64,7 @@ export const generateAcademicWork = (data: WorkFormValues): AcademicWork => {
     data.theme
   }" no contexto de ${data.area.toLowerCase()}, considerando as demandas atuais do nível ${educationLabel.toLowerCase()}.
 
-A introdução apresenta o problema central, os objetivos geral e específicos, a justificativa da relevância do estudo para o campo de ${data.area.toLowerCase()}, a delimitação do objeto de estudo (contexto, recorte temporal e/ou espacial) e uma breve descrição da metodologia adotada.`;
+${data.description ? data.description + "\n\n" : ""}A introdução apresenta o problema central, os objetivos geral e específicos, a justificativa da relevância do estudo para o campo de ${data.area.toLowerCase()}, a delimitação do objeto de estudo (contexto, recorte temporal e/ou espacial) e uma breve descrição da metodologia adotada.`;
 
   const development = `No desenvolvimento, são discutidos os principais conceitos teóricos relacionados a "${
     data.theme

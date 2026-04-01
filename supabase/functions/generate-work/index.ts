@@ -26,6 +26,7 @@ interface WorkFormPayload {
   workType: string;
   area: string;
   theme: string;
+  description?: string;
   pages: string;
   languagePtBr: boolean;
   languageEn: boolean;
@@ -113,7 +114,7 @@ Regras gerais do trabalho:
 - Nível de ensino: ${body.educationLevel}.
 - Tipo de trabalho: ${body.workType}.
 - Área/disciplina: ${body.area}.
-- Tema detalhado: ${body.theme}.
+- Tema detalhado: ${body.theme}.${body.description ? `\n- Descrição adicional do utilizador: ${body.description}` : ""}
 - Pretenda um comprimento aproximado de ${body.pages} páginas A4 em letra 12 e espaçamento 1.5 (ou seja, texto relativamente extenso e desenvolvido).
 - Mantém tom formal académico, com frases completas e linguagem técnica adequada ao nível de ensino.
 ${pdfContext}`;
