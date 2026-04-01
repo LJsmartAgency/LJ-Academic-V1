@@ -241,9 +241,8 @@ const CreateWork = () => {
                   <FormItem>
                     <FormLabel>Tema do trabalho</FormLabel>
                     <FormControl>
-                      <Textarea
-                        rows={5}
-                        placeholder="Descreva o foco do trabalho, os objectivos principais e o problema a estudar."
+                      <Input
+                        placeholder="Ex.: Impacto da Tecnologia na Educação"
                         {...field}
                       />
                     </FormControl>
@@ -251,6 +250,43 @@ const CreateWork = () => {
                   </FormItem>
                 )}
               />
+
+              <div className="space-y-2">
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição detalhada (opcional)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          rows={4}
+                          placeholder="Ex: O trabalho deve abordar temas como: impacto da tecnologia na educação moderna, impacto da tecnologia na educação tradicional, etc."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateDescription}
+                    disabled={isGeneratingDesc}
+                    className="gap-2"
+                  >
+                    {isGeneratingDesc ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    {isGeneratingDesc ? "A gerar..." : "Melhorar Descrição"}
+                  </Button>
+                </div>
+              </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
