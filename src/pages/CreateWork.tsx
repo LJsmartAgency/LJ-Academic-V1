@@ -20,7 +20,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker as string;
 
 const CreateWork = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
 
   useEffect(() => {
     document.title = "Criar trabalho | LJsmart-Academic";
