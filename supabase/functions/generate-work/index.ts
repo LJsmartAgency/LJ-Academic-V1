@@ -26,6 +26,7 @@ interface WorkFormPayload {
   workType: string;
   area: string;
   theme: string;
+  description?: string;
   pages: string;
   languagePtBr: boolean;
   languageEn: boolean;
