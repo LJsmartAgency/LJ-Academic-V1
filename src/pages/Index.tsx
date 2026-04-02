@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FileText, Layers, Download, Zap, Shield, Clock, ChevronRight, Sparkles } from "lucide-react";
+import { FileText, Layers, Download, Zap, Shield, Clock, ChevronRight, Sparkles, Camera } from "lucide-react";
 import trabalhoExemplo from "@/assets/trabalho-exemplo.jpg";
 
 const Index = () => {
@@ -46,6 +46,9 @@ const Index = () => {
           </Link>
 
           <nav className="flex items-center gap-3">
+            <Link to="/guiao-correcao" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:inline-flex">
+              Guião de Correção
+            </Link>
             <Link
               to="/criar-trabalho"
               className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[hsl(263,70%,58%)] to-[hsl(239,84%,67%)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[hsl(263,70%,58%)/0.25] transition-all duration-200 hover:shadow-xl hover:shadow-[hsl(263,70%,58%)/0.35] hover:-translate-y-0.5"
@@ -194,7 +197,64 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ── Testimonials ── */}
+      {/* ── Exam Correction Feature ── */}
+      <section className="border-t border-border/30 bg-secondary/20 px-5 py-24">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid gap-10 items-center md:grid-cols-2">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border/60 bg-secondary/60 px-4 py-1.5 text-xs font-medium text-muted-foreground">
+                <Camera size={14} className="text-[hsl(263,70%,58%)]" />
+                Novo
+              </div>
+              <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
+                Guião de Correção com IA
+              </h2>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                Envie a foto do seu exame e receba um guião de correção completo com todas as respostas, resoluções passo a passo e critérios de cotação — para qualquer curso e disciplina.
+              </p>
+              <ul className="mt-6 space-y-3 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2"><Shield size={16} className="text-[hsl(142,71%,45%)]" /> Resolução detalhada de cada questão</li>
+                <li className="flex items-center gap-2"><Shield size={16} className="text-[hsl(142,71%,45%)]" /> Sistema de ensino de Portugal</li>
+                <li className="flex items-center gap-2"><Shield size={16} className="text-[hsl(142,71%,45%)]" /> Download em Word (.docx)</li>
+              </ul>
+              <Link
+                to="/guiao-correcao"
+                className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[hsl(263,70%,58%)] to-[hsl(239,84%,67%)] px-8 py-4 text-base font-bold text-white shadow-lg transition-all duration-200 hover:scale-[1.03] hover:-translate-y-0.5"
+              >
+                <Camera size={20} />
+                Corrigir Exame Agora
+              </Link>
+            </div>
+            <div className="glass-card rounded-2xl p-6 shadow-2xl shadow-black/20">
+              <div className="flex items-center gap-3 border-b border-border/30 pb-4">
+                <Camera size={20} className="text-[hsl(263,70%,58%)]" />
+                <span className="font-display text-sm font-semibold">Guiao_Correcao.docx</span>
+                <span className="ml-auto rounded-full bg-[hsl(142,71%,45%)/0.15] px-2.5 py-0.5 text-xs font-medium text-[hsl(142,71%,45%)]">
+                  Pronto
+                </span>
+              </div>
+              <div className="mt-4 space-y-3 text-sm">
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <p className="font-semibold text-xs text-muted-foreground mb-1">Questão 1</p>
+                  <p className="text-foreground/80">Calcule o valor do ativo total...</p>
+                  <p className="mt-2 text-xs text-[hsl(142,71%,45%)]">✓ Resposta: 45.000,00€</p>
+                </div>
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <p className="font-semibold text-xs text-muted-foreground mb-1">Questão 2</p>
+                  <p className="text-foreground/80">Classifique as seguintes operações...</p>
+                  <p className="mt-2 text-xs text-[hsl(142,71%,45%)]">✓ Resolução completa</p>
+                </div>
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <p className="font-semibold text-xs text-muted-foreground mb-1">Questão 3</p>
+                  <p className="text-foreground/80">Elabore o balancete de verificação...</p>
+                  <p className="mt-2 text-xs text-[hsl(142,71%,45%)]">✓ Resolução passo a passo</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="border-t border-border/30 bg-secondary/20 px-5 py-24">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
