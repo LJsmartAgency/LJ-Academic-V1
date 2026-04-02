@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FileText, Layers, Download, Zap, Shield, Clock, ChevronRight, Sparkles } from "lucide-react";
+import { FileText, Layers, Download, Zap, Shield, Clock, ChevronRight, Sparkles, Camera } from "lucide-react";
 import trabalhoExemplo from "@/assets/trabalho-exemplo.jpg";
 
 const Index = () => {
