@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import CreateWork from "./pages/CreateWork";
 import Result from "./pages/Result";
+import ExamCorrection from "./pages/ExamCorrection";
 
 const queryClient = new QueryClient();
 
