@@ -188,6 +188,7 @@ const ExamCorrection = () => {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Ensino secundário">Ensino Secundário</SelectItem>
+                    <SelectItem value="Ensino técnico profissional">Ensino Técnico Profissional</SelectItem>
                     <SelectItem value="Licenciatura">Licenciatura</SelectItem>
                     <SelectItem value="Mestrado">Mestrado</SelectItem>
                     <SelectItem value="Doutoramento">Doutoramento</SelectItem>
