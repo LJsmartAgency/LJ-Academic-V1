@@ -46,6 +46,9 @@ const Index = () => {
           </Link>
 
           <nav className="flex items-center gap-3">
+            <Link to="/guiao-correcao" className="text-sm text-muted-foreground hover:text-foreground transition-colors hidden sm:inline-flex">
+              Guião de Correção
+            </Link>
             <Link
               to="/criar-trabalho"
               className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[hsl(263,70%,58%)] to-[hsl(239,84%,67%)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[hsl(263,70%,58%)/0.25] transition-all duration-200 hover:shadow-xl hover:shadow-[hsl(263,70%,58%)/0.35] hover:-translate-y-0.5"
