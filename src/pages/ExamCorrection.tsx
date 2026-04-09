@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Link } from "react-router-dom";
 import { Camera, Loader2, Download, Upload, ArrowLeft, CheckCircle2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -10,6 +11,19 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+const getFunctionErrorMessage = async (error: unknown, fallback: string) => {
+  if (error instanceof FunctionsHttpError) {
+    const payload = await error.context.json().catch(() => null);
+    return payload?.error || fallback;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+};
 
 const ExamCorrection = () => {
   const { toast } = useToast();
@@ -74,7 +88,11 @@ const ExamCorrection = () => {
       });
 
       if (error || !data?.correction) {
-        toast({ title: "Erro", description: "Não foi possível gerar o guião. Tente novamente.", variant: "destructive" });
+        toast({
+          title: "Erro",
+          description: await getFunctionErrorMessage(error, "Não foi possível gerar o guião. Tente novamente."),
+          variant: "destructive",
+        });
       } else {
         setCorrection(data.correction);
       }

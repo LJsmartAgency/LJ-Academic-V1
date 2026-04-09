@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { Sparkles, Loader2 } from "lucide-react";
 
@@ -17,6 +18,19 @@ import * as pdfjsLib from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker?url";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker as string;
+
+const getFunctionErrorMessage = async (error: unknown, fallback: string) => {
+  if (error instanceof FunctionsHttpError) {
+    const payload = await error.context.json().catch(() => null);
+    return payload?.error || fallback;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+};
 
 const CreateWork = () => {
   const navigate = useNavigate();
@@ -94,7 +108,11 @@ const CreateWork = () => {
         },
       });
       if (error || !data?.description) {
-        toast({ title: "Erro", description: "Não foi possível gerar a descrição. Tente novamente.", variant: "destructive" });
+        toast({
+          title: "Erro",
+          description: await getFunctionErrorMessage(error, "Não foi possível gerar a descrição. Tente novamente."),
+          variant: "destructive",
+        });
       } else {
         form.setValue("description", data.description, { shouldValidate: true });
       }
@@ -125,6 +143,11 @@ const CreateWork = () => {
 
       if (error || !data || !(data as { work?: AcademicWork }).work) {
         console.error("Erro na função generate-work", error);
+        toast({
+          title: "IA indisponível",
+          description: await getFunctionErrorMessage(error, "A IA não respondeu, por isso foi usada a geração local."),
+          variant: "destructive",
+        });
         work = generateAcademicWork(values);
       } else {
         work = (data as { work: AcademicWork }).work;
