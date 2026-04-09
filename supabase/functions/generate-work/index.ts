@@ -1,9 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "npm:zod";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 // Simple in-memory rate limiter: max 10 requests per IP per 10 minutes
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -36,6 +39,39 @@ interface WorkFormPayload {
   pdfText?: string;
 }
 
+const WorkFormSchema = z.object({
+  educationLevel: z.string().min(1, "O nível de ensino é obrigatório."),
+  workType: z.string().min(1, "O tipo de trabalho é obrigatório."),
+  area: z.string().min(1, "A área/disciplina é obrigatória."),
+  theme: z.string().min(3, "O tema do trabalho é obrigatório."),
+  description: z.string().optional(),
+  pages: z.string().min(1, "O número de páginas é obrigatório."),
+  languagePtBr: z.boolean().optional().default(true),
+  languageEn: z.boolean().optional().default(false),
+  style: z.string().optional(),
+  tone: z.string().optional(),
+  pdfName: z.string().optional(),
+  pdfText: z.string().optional(),
+});
+
+function getResponseText(data: any) {
+  const content = data?.choices?.[0]?.message?.content;
+
+  if (typeof content === "string") {
+    return content.trim();
+  }
+
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => (typeof part === "string" ? part : part?.text ?? ""))
+      .filter(Boolean)
+      .join("\n")
+      .trim();
+  }
+
+  return "";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -52,15 +88,13 @@ serve(async (req) => {
       );
     }
 
-    // Uses your own provider key stored in your Supabase project secrets
-    // (Project Settings -> Secrets)
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
       return new Response(
         JSON.stringify({
           error:
-            "Configuração em falta: defina a secret GEMINI_API_KEY no seu projeto Supabase (Settings → Secrets).",
+            "Configuração em falta: a secret LOVABLE_API_KEY não está disponível no projeto.",
         }),
         {
           status: 500,
@@ -69,7 +103,18 @@ serve(async (req) => {
       );
     }
 
-    const body = (await req.json()) as WorkFormPayload;
+    const requestBody = await req.json().catch(() => null);
+    const parsedBody = WorkFormSchema.safeParse(requestBody);
+
+    if (!parsedBody.success) {
+      const firstError = Object.values(parsedBody.error.flatten().fieldErrors).flat()[0] ?? "Pedido inválido.";
+      return new Response(JSON.stringify({ error: firstError }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const body = parsedBody.data as WorkFormPayload;
 
     const language = body.languageEn ? "en" : "pt-PT";
 
@@ -121,42 +166,49 @@ ${pdfContext}`;
 
     console.log("Calling Gemini...");
 
-    const url =
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
-
-    const geminiResp = await fetch(url, {
+    const aiResp = await fetch(LOVABLE_AI_URL, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        contents: [
+        model: "google/gemini-3-flash-preview",
+        temperature: 0.7,
+        messages: [
+          {
+            role: "system",
+            content: "Escreve trabalhos académicos completos em português de Portugal ou inglês, consoante instruído, mantendo estrutura formal, clareza e profundidade.",
+          },
           {
             role: "user",
-            parts: [{ text: prompt }],
+            content: prompt,
           },
         ],
-        generationConfig: {
-          temperature: 0.7,
-        },
       }),
     });
 
-    if (!geminiResp.ok) {
-      const errorText = await geminiResp.text();
-      console.error("Gemini error", geminiResp.status, errorText);
-      return new Response(JSON.stringify({ error: "Erro ao gerar texto com IA." }), {
-        status: 500,
+    if (!aiResp.ok) {
+      const errorText = await aiResp.text();
+      console.error("Lovable AI error", aiResp.status, errorText);
+
+      const message = aiResp.status === 429
+        ? "Lovable AI está temporariamente no limite de pedidos. Tente novamente dentro de instantes."
+        : aiResp.status === 402
+          ? "O saldo da Lovable AI do workspace esgotou. Recarregue em Settings → Cloud & AI balance."
+          : "Erro ao gerar texto com IA.";
+
+      return new Response(JSON.stringify({ error: message }), {
+        status: aiResp.status === 429 || aiResp.status === 402 ? aiResp.status : 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const geminiData = await geminiResp.json();
-    const text: string =
-      geminiData?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).filter(Boolean).join("\n") ?? "";
+    const aiData = await aiResp.json();
+    const text = getResponseText(aiData);
 
     if (!text) {
-      console.error("Gemini response without text", JSON.stringify(geminiData));
+      console.error("Lovable AI response without text", JSON.stringify(aiData));
       return new Response(JSON.stringify({ error: "Resposta vazia da IA." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
