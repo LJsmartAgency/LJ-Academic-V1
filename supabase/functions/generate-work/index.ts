@@ -164,7 +164,7 @@ Regras gerais do trabalho:
 - Mantém tom formal académico, com frases completas e linguagem técnica adequada ao nível de ensino.
 ${pdfContext}`;
 
-    console.log("Calling Gemini...");
+    console.log("Calling Lovable AI...");
 
     const aiResp = await fetch(LOVABLE_AI_URL, {
       method: "POST",
