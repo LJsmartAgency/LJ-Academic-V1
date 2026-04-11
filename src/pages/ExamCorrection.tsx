@@ -11,18 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { invokeFunction } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
-const getFunctionErrorMessage = async (error: unknown, fallback: string) => {
-  if (error instanceof FunctionsHttpError) {
-    const payload = await error.context.json().catch(() => null);
-    return payload?.error || fallback;
-  }
 
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return fallback;
-};
 
 const ExamCorrection = () => {
   const { toast } = useToast();
@@ -76,20 +65,18 @@ const ExamCorrection = () => {
       reader.readAsDataURL(imageFile);
       const imageBase64 = await base64Promise;
 
-      const { data, error } = await supabase.functions.invoke("generate-correction", {
-        body: {
-          imageBase64,
-          mimeType: imageFile.type,
-          course,
-          educationLevel,
-          examTitle,
-        },
+      const { data, error } = await invokeFunction("generate-correction", {
+        imageBase64,
+        mimeType: imageFile.type,
+        course,
+        educationLevel,
+        examTitle,
       });
 
       if (error || !data?.correction) {
         toast({
           title: "Erro",
-          description: await getFunctionErrorMessage(error, "Não foi possível gerar o guião. Tente novamente."),
+          description: error || "Não foi possível gerar o guião. Tente novamente.",
           variant: "destructive",
         });
       } else {

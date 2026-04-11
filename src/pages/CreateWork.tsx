@@ -122,8 +122,8 @@ const CreateWork = () => {
         }
       }
 
-      const { data, error } = await supabase.functions.invoke("generate-work", {
-        body: { ...values, pdfName: pdfFile ? pdfFile.name : undefined, pdfText },
+      const { data, error } = await invokeFunction("generate-work", {
+        ...values, pdfName: pdfFile ? pdfFile.name : undefined, pdfText,
       });
 
       let work: AcademicWork;
@@ -132,7 +132,7 @@ const CreateWork = () => {
         console.error("Erro na função generate-work", error);
         toast({
           title: "IA indisponível",
-          description: await getFunctionErrorMessage(error, "A IA não respondeu, por isso foi usada a geração local."),
+          description: error || "A IA não respondeu, por isso foi usada a geração local.",
           variant: "destructive",
         });
         work = generateAcademicWork(values);
