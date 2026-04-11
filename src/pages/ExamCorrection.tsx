@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { FunctionsHttpError } from "@supabase/supabase-js";
 import { Link } from "react-router-dom";
 import { Camera, Loader2, Download, Upload, ArrowLeft, CheckCircle2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeFunction } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const getFunctionErrorMessage = async (error: unknown, fallback: string) => {

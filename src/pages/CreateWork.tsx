@@ -89,17 +89,15 @@ const CreateWork = () => {
     }
     setIsGeneratingDesc(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-description", {
-        body: {
-          theme,
-          area: form.getValues("area"),
-          educationLevel: form.getValues("educationLevel"),
-        },
+      const { data, error } = await invokeFunction("generate-description", {
+        theme,
+        area: form.getValues("area"),
+        educationLevel: form.getValues("educationLevel"),
       });
       if (error || !data?.description) {
         toast({
           title: "Erro",
-          description: await getFunctionErrorMessage(error, "Não foi possível gerar a descrição. Tente novamente."),
+          description: error || "Não foi possível gerar a descrição. Tente novamente.",
           variant: "destructive",
         });
       } else {
