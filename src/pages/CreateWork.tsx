@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FunctionsHttpError } from "@supabase/supabase-js";
+
 import { useNavigate } from "react-router-dom";
 import { Sparkles, Loader2 } from "lucide-react";
 
@@ -12,25 +12,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { workFormSchema, type WorkFormValues, generateAcademicWork, type AcademicWork } from "@/lib/generator";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeFunction } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker?url";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker as string;
 
-const getFunctionErrorMessage = async (error: unknown, fallback: string) => {
-  if (error instanceof FunctionsHttpError) {
-    const payload = await error.context.json().catch(() => null);
-    return payload?.error || fallback;
-  }
 
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return fallback;
-};
 
 const CreateWork = () => {
   const navigate = useNavigate();
