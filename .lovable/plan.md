@@ -1,45 +1,65 @@
 
 
-## Plan: Add Exam Correction Guide Feature
+## Plan: Migrar App para GitHub sem Supabase, mantendo a IA
 
-### Overview
-Add a new feature "Guião de Correção" that allows users to upload a photo of an exam/assessment and have the AI analyze and solve/correct the entire evaluation. This will be a separate flow from the academic work generator, accessible from the landing page and navigation.
+### Situacao Actual
 
-### Changes
+A app usa o Supabase **apenas** para 3 Edge Functions de IA:
+- `generate-description` - gera descricoes
+- `generate-work` - gera trabalhos academicos
+- `generate-correction` - guiao de correcao de exames
 
-**1. New page: `src/pages/ExamCorrection.tsx`**
-- Form with fields: Course name (e.g. Contabilidade), Education level, Exam title (optional)
-- Image upload input (accepts camera photos and image files: jpg, png, webp)
-- Convert uploaded image to base64 for sending to the AI
-- "Gerar Guião de Correção" submit button with loading state
-- Display the AI-generated correction guide in a structured result view
-- Download as Word (.docx) button, same pattern as Result page
+Nao ha tabelas em uso no frontend, nao ha autenticacao, nao ha storage. O unico uso real do Supabase e como host das Edge Functions que chamam a Lovable AI Gateway.
 
-**2. New edge function: `supabase/functions/generate-correction/index.ts`**
-- Receives: base64 image, course, educationLevel, examTitle
-- Uses Gemini API with vision capability (gemini-1.5-flash) to read the exam image
-- Prompt instructs AI to: identify each question, provide the correct answer with detailed explanation, use Portuguese (Portugal) academic style
-- Returns structured JSON with questions and answers
-- Includes rate limiting (same pattern as generate-work)
-- Reads GEMINI_API_KEY from Supabase secrets
+### O Problema
 
-**3. Update `supabase/config.toml`**
-- Add `[functions.generate-correction]` with `verify_jwt = false`
+A Lovable AI Gateway (`ai.gateway.lovable.dev`) so funciona dentro do ecossistema Lovable com a `LOVABLE_API_KEY`. Fora da Lovable, esta chave nao funcionara. Precisas de uma alternativa para a IA.
 
-**4. Update `src/App.tsx`**
-- Add route `/guiao-correcao` pointing to ExamCorrection page
+### Solucao Proposta
 
-**5. Update `src/pages/Index.tsx`**
-- Add a new section/card on the landing page highlighting the correction guide feature
-- Add a second CTA button or feature card linking to `/guiao-correcao`
-- Update navbar to include link to the new feature
+Substituir as Edge Functions do Supabase por **API routes no servidor de deploy** (ex: Vercel Serverless Functions, Netlify Functions, ou um backend Node.js simples), usando a **Google Gemini API directamente** com a tua propria `GEMINI_API_KEY`.
 
-**6. Update header in `src/pages/CreateWork.tsx`**
-- Add navigation link to the correction guide page
+### Alteracoes
 
-### Technical Details
+**1. Criar API endpoints substitutos (3 ficheiros)**
 
-- **Image handling**: The image will be converted to base64 on the client side and sent in the request body. Gemini's vision API accepts base64 images inline.
-- **Gemini vision prompt**: Will use `gemini-1.5-flash` with multimodal content (image + text) to analyze the exam photo, identify questions, and generate detailed corrections following Portuguese education standards.
-- **Word export**: Reuses the same `docx` library pattern from Result.tsx to generate a downloadable correction guide document.
+Criar pastas `api/` compativeis com Vercel/Netlify:
+- `api/generate-description.ts` - mesma logica, chama Gemini directamente
+- `api/generate-work.ts` - mesma logica, chama Gemini directamente  
+- `api/generate-correction.ts` - mesma logica, chama Gemini directamente
+
+Cada ficheiro usara `fetch` para chamar `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent` com a `GEMINI_API_KEY` como variavel de ambiente do servidor.
+
+**2. Criar servico de API no frontend (`src/lib/api.ts`)**
+
+Substituir as chamadas `supabase.functions.invoke()` por chamadas `fetch()` directas aos novos endpoints `/api/generate-*`.
+
+**3. Actualizar paginas do frontend (2 ficheiros)**
+
+- `src/pages/CreateWork.tsx` - usar `api.ts` em vez de `supabase.functions.invoke`
+- `src/pages/ExamCorrection.tsx` - usar `api.ts` em vez de `supabase.functions.invoke`
+
+**4. Remover dependencias do Supabase**
+
+- Remover `@supabase/supabase-js` do `package.json`
+- Remover `src/integrations/supabase/` (client.ts, types.ts)
+- Remover `.env` com variaveis Supabase
+- Manter `supabase/functions/` como referencia ou remover
+
+**5. Configuracao de deploy**
+
+No servico de hosting (Vercel, Netlify, etc.), configurar a variavel de ambiente:
+- `GEMINI_API_KEY` - a tua chave da Google Gemini API
+
+### Onde fazer deploy
+
+| Plataforma | Tipo | Custo |
+|------------|------|-------|
+| Vercel | Serverless Functions + Static | Gratis (hobby) |
+| Netlify | Functions + Static | Gratis (starter) |
+| Railway | Node.js server | ~5$/mes |
+
+### Resumo
+
+Sim, e perfeitamente possivel. A app continuara a funcionar com IA, mas em vez de usar Supabase Edge Functions + Lovable AI, usara directamente a Google Gemini API atraves de serverless functions no teu servidor de deploy. Precisas apenas de uma `GEMINI_API_KEY` valida (obtem em [Google AI Studio](https://ai.google.dev/)).
 
