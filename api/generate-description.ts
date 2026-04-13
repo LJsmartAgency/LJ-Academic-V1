@@ -1,8 +1,19 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+type ApiRequest = {
+  method?: string;
+  body?: Record<string, unknown>;
+};
+
+type ApiResponse = {
+  setHeader: (name: string, value: string) => void;
+  status: (code: number) => {
+    json: (payload: unknown) => void;
+    end: () => void;
+  };
+};
+
+export default async function handler(req: ApiRequest, res: ApiResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "content-type");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
