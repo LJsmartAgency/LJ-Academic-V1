@@ -416,6 +416,47 @@ const CreateWork = () => {
                 />
               </div>
 
+              <div className="space-y-4 border-t border-border/60 pt-4">
+                <div>
+                  <p className="text-sm font-semibold">Dados da capa e contra-capa (opcional)</p>
+                  <p className="text-xs text-muted-foreground">Preenche para incluir capa e contra-capa com moldura no documento Word.</p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField control={form.control} name="coverUniversity" render={({ field }) => (
+                    <FormItem><FormLabel>Universidade</FormLabel><FormControl><Input placeholder="Ex.: Universidade Católica de Moçambique" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="coverFaculty" render={({ field }) => (
+                    <FormItem><FormLabel>Faculdade</FormLabel><FormControl><Input placeholder="Ex.: Faculdade de Economia e Gestão" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="coverCourse" render={({ field }) => (
+                    <FormItem><FormLabel>Curso</FormLabel><FormControl><Input placeholder="Ex.: Licenciatura em Gestão" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="coverYear" render={({ field }) => (
+                    <FormItem><FormLabel>Ano</FormLabel><FormControl><Input placeholder="Ex.: 2.º Ano" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="coverSubject" render={({ field }) => (
+                    <FormItem><FormLabel>Cadeira</FormLabel><FormControl><Input placeholder="Ex.: Contabilidade Financeira" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="coverGroup" render={({ field }) => (
+                    <FormItem><FormLabel>Grupo</FormLabel><FormControl><Input placeholder="Ex.: Grupo nº 3" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
+                <FormField control={form.control} name="coverStudents" render={({ field }) => (
+                  <FormItem><FormLabel>Discentes</FormLabel><FormControl><Textarea rows={3} placeholder="Um nome por linha" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <FormField control={form.control} name="coverTeacher" render={({ field }) => (
+                    <FormItem><FormLabel>Docente</FormLabel><FormControl><Input placeholder="Ex.: Prof. Doutor João Silva" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="coverLocation" render={({ field }) => (
+                    <FormItem><FormLabel>Local</FormLabel><FormControl><Input placeholder="Ex.: Beira" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="coverDate" render={({ field }) => (
+                    <FormItem><FormLabel>Data</FormLabel><FormControl><Input placeholder="Ex.: Maio de 2026" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
+              </div>
+
               <div className="space-y-2 border-t border-border/60 pt-4">
                 <div className="space-y-2">
                   <p className="text-sm font-medium">PDF base do trabalho (opcional)</p>
