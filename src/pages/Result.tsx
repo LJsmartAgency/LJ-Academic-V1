@@ -309,7 +309,7 @@ const downloadWord = async (work: AcademicWork, form?: WorkFormValues) => {
     space: 24,
   };
 
-  const sections: ConstructorParameters<typeof Document>[0]["sections"] = [];
+  const sections: NonNullable<ConstructorParameters<typeof Document>[0]["sections"]>[number][] = [];
 
   if (hasCoverData(form)) {
     const capa = buildCoverParagraphs(work, form!);
