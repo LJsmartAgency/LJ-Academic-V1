@@ -24,6 +24,17 @@ export const workFormSchema = z
     languageEn: z.boolean().default(false),
     style: z.string().optional(),
     tone: z.string().optional(),
+    // Dados da capa / contra-capa (todos opcionais)
+    coverUniversity: z.string().max(150).optional().default(""),
+    coverFaculty: z.string().max(150).optional().default(""),
+    coverCourse: z.string().max(150).optional().default(""),
+    coverYear: z.string().max(20).optional().default(""),
+    coverSubject: z.string().max(150).optional().default(""),
+    coverGroup: z.string().max(50).optional().default(""),
+    coverStudents: z.string().max(600).optional().default(""),
+    coverTeacher: z.string().max(150).optional().default(""),
+    coverLocation: z.string().max(100).optional().default(""),
+    coverDate: z.string().max(50).optional().default(""),
   })
   .superRefine((data, ctx) => {
     if (!data.languagePtBr && !data.languageEn) {
