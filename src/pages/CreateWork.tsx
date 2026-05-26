@@ -78,6 +78,16 @@ const CreateWork = () => {
       languageEn: false,
       style: "ABNT",
       tone: "Formal académico",
+      coverUniversity: "",
+      coverFaculty: "",
+      coverCourse: "",
+      coverYear: "",
+      coverSubject: "",
+      coverGroup: "",
+      coverStudents: "",
+      coverTeacher: "",
+      coverLocation: "",
+      coverDate: "",
     },
   });
 
