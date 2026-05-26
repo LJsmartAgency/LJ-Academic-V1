@@ -456,7 +456,7 @@ const Result = () => {
             <Button variant="outline" onClick={() => navigator.clipboard.writeText(fullText)}>
               Copiar texto
             </Button>
-            <Button variant="outline" onClick={() => downloadWord(work)}>
+            <Button variant="outline" onClick={() => downloadWord(work, formValues)}>
               Descarregar Word
             </Button>
           </div>
