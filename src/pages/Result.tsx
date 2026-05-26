@@ -1,13 +1,22 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Document, Packer, Paragraph, TextRun } from "docx";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  AlignmentType,
+  PageBreak,
+  BorderStyle,
+} from "docx";
 import ReactMarkdown from "react-markdown";
 
 import { Button } from "@/components/ui/button";
-import type { AcademicWork } from "@/lib/generator";
+import type { AcademicWork, WorkFormValues } from "@/lib/generator";
 
 interface LocationState {
   work?: AcademicWork;
+  form?: WorkFormValues;
 }
 
 const stripMarkdown = (text: string): string => {
