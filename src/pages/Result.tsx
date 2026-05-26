@@ -1,13 +1,22 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Document, Packer, Paragraph, TextRun } from "docx";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  AlignmentType,
+  PageBreak,
+  BorderStyle,
+} from "docx";
 import ReactMarkdown from "react-markdown";
 
 import { Button } from "@/components/ui/button";
-import type { AcademicWork } from "@/lib/generator";
+import type { AcademicWork, WorkFormValues } from "@/lib/generator";
 
 interface LocationState {
   work?: AcademicWork;
+  form?: WorkFormValues;
 }
 
 const stripMarkdown = (text: string): string => {
@@ -81,7 +90,130 @@ const buildPlainText = (work: AcademicWork): string => {
 };
 
 
-const downloadWord = async (work: AcademicWork) => {
+const hasCoverData = (form?: WorkFormValues): boolean => {
+  if (!form) return false;
+  return Boolean(
+    form.coverUniversity ||
+      form.coverFaculty ||
+      form.coverCourse ||
+      form.coverYear ||
+      form.coverSubject ||
+      form.coverGroup ||
+      form.coverStudents ||
+      form.coverTeacher ||
+      form.coverLocation ||
+      form.coverDate,
+  );
+};
+
+const centered = (text: string, opts: { bold?: boolean; size?: number; spaceAfter?: number } = {}) =>
+  new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: opts.spaceAfter ?? 120 },
+    children: [new TextRun({ text, bold: opts.bold, size: opts.size })],
+  });
+
+const buildCoverParagraphs = (work: AcademicWork, form: WorkFormValues): Paragraph[] => {
+  const p: Paragraph[] = [];
+  if (form.coverUniversity) p.push(centered(form.coverUniversity.toUpperCase(), { bold: true, size: 28 }));
+  if (form.coverFaculty) p.push(centered(form.coverFaculty, { bold: true, size: 24 }));
+  if (form.coverCourse) p.push(centered(form.coverCourse, { size: 24 }));
+  if (form.coverYear) p.push(centered(form.coverYear, { size: 24 }));
+  if (form.coverSubject) p.push(centered(`Cadeira: ${form.coverSubject}`, { size: 24 }));
+  if (form.coverGroup) p.push(centered(form.coverGroup, { size: 24 }));
+
+  // espaço
+  for (let i = 0; i < 4; i++) p.push(centered(""));
+
+  // Tema
+  p.push(centered("TEMA:", { bold: true, size: 28 }));
+  p.push(centered(work.title.toUpperCase(), { bold: true, size: 28, spaceAfter: 240 }));
+
+  for (let i = 0; i < 3; i++) p.push(centered(""));
+
+  if (form.coverStudents) {
+    p.push(
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        children: [new TextRun({ text: "Discentes:", bold: true })],
+      }),
+    );
+    for (const line of form.coverStudents.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)) {
+      p.push(new Paragraph({ children: [new TextRun({ text: line })] }));
+    }
+  }
+
+  if (form.coverTeacher) {
+    p.push(new Paragraph({ children: [new TextRun({ text: "" })] }));
+    p.push(
+      new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        children: [new TextRun({ text: "Docente:", bold: true })],
+      }),
+    );
+    p.push(
+      new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        children: [new TextRun({ text: form.coverTeacher })],
+      }),
+    );
+  }
+
+  // Rodapé local + data
+  for (let i = 0; i < 3; i++) p.push(centered(""));
+  if (form.coverLocation) p.push(centered(form.coverLocation, { bold: true }));
+  if (form.coverDate) p.push(centered(form.coverDate, { bold: true }));
+
+  return p;
+};
+
+const buildBackCoverParagraphs = (work: AcademicWork, form: WorkFormValues): Paragraph[] => {
+  // Contra-capa: versão simplificada (sem universidade/faculdade no topo? — manter mas mais limpo)
+  const p: Paragraph[] = [];
+  if (form.coverUniversity) p.push(centered(form.coverUniversity.toUpperCase(), { bold: true, size: 28 }));
+  if (form.coverCourse) p.push(centered(form.coverCourse, { size: 24 }));
+  if (form.coverSubject) p.push(centered(`Cadeira: ${form.coverSubject}`, { size: 24 }));
+
+  for (let i = 0; i < 4; i++) p.push(centered(""));
+
+  p.push(centered(work.title.toUpperCase(), { bold: true, size: 28, spaceAfter: 240 }));
+
+  for (let i = 0; i < 3; i++) p.push(centered(""));
+
+  if (form.coverStudents) {
+    p.push(
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        children: [new TextRun({ text: "Discentes:", bold: true })],
+      }),
+    );
+    for (const line of form.coverStudents.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)) {
+      p.push(new Paragraph({ children: [new TextRun({ text: line })] }));
+    }
+  }
+
+  // Nota da contra-capa: trabalho a ser entregue
+  p.push(new Paragraph({ children: [new TextRun({ text: "" })] }));
+  p.push(
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      indent: { left: 4500 },
+      children: [
+        new TextRun({
+          text: `Trabalho de carácter avaliativo a ser entregue${form.coverTeacher ? ` ao(à) ${form.coverTeacher}` : ""}${form.coverSubject ? `, na cadeira de ${form.coverSubject}` : ""}.`,
+        }),
+      ],
+    }),
+  );
+
+  for (let i = 0; i < 3; i++) p.push(centered(""));
+  if (form.coverLocation) p.push(centered(form.coverLocation, { bold: true }));
+  if (form.coverDate) p.push(centered(form.coverDate, { bold: true }));
+
+  return p;
+};
+
+const downloadWord = async (work: AcademicWork, form?: WorkFormValues) => {
   const paragraphs: Paragraph[] = [];
 
   // Página 1: Índice (texto vindo da IA)
@@ -169,17 +301,44 @@ const downloadWord = async (work: AcademicWork) => {
     );
   }
 
-  const doc = new Document({
-    sections: [
-      {
-        properties: {
-          page: {
-            margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 }, // ~2,5 cm
+  const baseMargin = { top: 1134, right: 1134, bottom: 1134, left: 1134 };
+  const thinBorder = {
+    style: BorderStyle.SINGLE,
+    size: 12, // ~1pt
+    color: "000000",
+    space: 24,
+  };
+
+  const sections: NonNullable<ConstructorParameters<typeof Document>[0]["sections"]>[number][] = [];
+
+  if (hasCoverData(form)) {
+    const capa = buildCoverParagraphs(work, form!);
+    const contracapa = buildBackCoverParagraphs(work, form!);
+    // separador entre capa e contra-capa
+    capa.push(new Paragraph({ children: [new PageBreak()] }));
+    sections.push({
+      properties: {
+        page: {
+          margin: baseMargin,
+          borders: {
+            pageBorderTop: thinBorder,
+            pageBorderRight: thinBorder,
+            pageBorderBottom: thinBorder,
+            pageBorderLeft: thinBorder,
           },
         },
-        children: paragraphs,
       },
-    ],
+      children: [...capa, ...contracapa],
+    });
+  }
+
+  sections.push({
+    properties: { page: { margin: baseMargin } },
+    children: paragraphs,
+  });
+
+  const doc = new Document({
+    sections,
     styles: {
       default: {
         document: {
@@ -214,6 +373,7 @@ const Result = () => {
   const navigate = useNavigate();
   const state = (location.state as LocationState) || {};
   const work = state.work;
+  const formValues = state.form;
 
   useEffect(() => {
     document.title = "Resultado | LJsmart-Academic";
@@ -296,7 +456,7 @@ const Result = () => {
             <Button variant="outline" onClick={() => navigator.clipboard.writeText(fullText)}>
               Copiar texto
             </Button>
-            <Button variant="outline" onClick={() => downloadWord(work)}>
+            <Button variant="outline" onClick={() => downloadWord(work, formValues)}>
               Descarregar Word
             </Button>
           </div>
