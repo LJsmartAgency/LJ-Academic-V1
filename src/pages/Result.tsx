@@ -312,10 +312,18 @@ const downloadWord = async (work: AcademicWork, form?: WorkFormValues) => {
   const sections: NonNullable<ConstructorParameters<typeof Document>[0]["sections"]>[number][] = [];
 
   if (hasCoverData(form)) {
+    const universityLevels = ["Licenciatura", "Mestrado", "Doutoramento"];
+    const isUniversity = universityLevels.includes(form?.educationLevel || "");
+
     const capa = buildCoverParagraphs(work, form!);
-    const contracapa = buildBackCoverParagraphs(work, form!);
-    // separador entre capa e contra-capa
-    capa.push(new Paragraph({ children: [new PageBreak()] }));
+    const coverChildren: Paragraph[] = [...capa];
+
+    if (isUniversity) {
+      // Universidade: capa + contra-capa
+      coverChildren.push(new Paragraph({ children: [new PageBreak()] }));
+      coverChildren.push(...buildBackCoverParagraphs(work, form!));
+    }
+
     sections.push({
       properties: {
         page: {
@@ -328,7 +336,7 @@ const downloadWord = async (work: AcademicWork, form?: WorkFormValues) => {
           },
         },
       },
-      children: [...capa, ...contracapa],
+      children: coverChildren,
     });
   }
 
