@@ -373,6 +373,7 @@ const Result = () => {
   const navigate = useNavigate();
   const state = (location.state as LocationState) || {};
   const work = state.work;
+  const formValues = state.form;
 
   useEffect(() => {
     document.title = "Resultado | LJsmart-Academic";
