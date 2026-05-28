@@ -19,8 +19,15 @@ interface LocationState {
   form?: WorkFormValues;
 }
 
-const stripMarkdown = (text: string): string => {
+// Remove emojis/símbolos decorativos (cadeado, marcadores, etc.) que a IA possa ter colocado
+const stripEmojis = (text: string): string => {
   return text
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F2FF}]/gu, "")
+    .replace(/[🔒🔐🔑📌✅✔️➡️•◦▪▫■□●○]/g, "");
+};
+
+const stripMarkdown = (text: string): string => {
+  return stripEmojis(text)
     .replace(/^\*\s+/gm, "") // remove bullets no início da linha
     .replace(/\*\*([^*]+)\*\*/g, "$1"); // remove marcadores de negrito markdown
 };
