@@ -96,6 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 PÁGINA 1 - ÍNDICE
 - Comece com o título "ÍNDICE".
 - Em seguida liste, numerados, todos os títulos e subtítulos do trabalho.
+- NÃO use emojis, ícones, símbolos decorativos (🔒, 📌, ✅, etc.) em nenhum lugar do texto. Apenas texto puro, números e pontuação.
 - IMPORTANTE: Nesta página de índice NÃO escreva nenhum parágrafo de conteúdo.
 
 Depois do índice, escreva o texto completo do trabalho com as secções seguintes:
