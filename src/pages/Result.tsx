@@ -34,7 +34,7 @@ const stripMarkdown = (text: string): string => {
 
 // Garante que subtítulos em negrito fiquem em linha própria, com espaço antes do parágrafo seguinte
 const normalizeSubtitles = (text: string): string => {
-  let result = text.replace(/^\s*\*\*([^*]+)\*\*\s+(?=\S)/gm, "**$1**\n\n");
+  let result = stripEmojis(text).replace(/^\s*\*\*([^*]+)\*\*\s+(?=\S)/gm, "**$1**\n\n");
 
   // Também trata subtítulos numerados (ex.: "1.2 O que é..." ou "1.2O que é..."),
   // garantindo um espaço entre o número e o texto, tudo em negrito e em linha própria
