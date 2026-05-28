@@ -1,4 +1,7 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+// Vercel Node runtime — using built-in types (Node http)
+import type { IncomingMessage, ServerResponse } from "http";
+type VercelRequest = IncomingMessage & { body: any; query: Record<string, string | string[]>; method?: string };
+type VercelResponse = ServerResponse & { status: (code: number) => VercelResponse; json: (data: any) => VercelResponse; send: (data: any) => VercelResponse };
 
 const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
