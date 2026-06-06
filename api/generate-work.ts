@@ -132,27 +132,31 @@ Regras gerais:
 ${pdfContext}`;
 
   try {
-    const aiResp = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
+    const aiResp = await fetch(AI_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      },
       body: JSON.stringify({
-        contents: [
-          { role: "user", parts: [{ text: prompt }] },
-        ],
-        generationConfig: { temperature: 0.7 },
+        model: MODEL,
+        messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!aiResp.ok) {
       const errorText = await aiResp.text();
-      console.error("Gemini error", aiResp.status, errorText);
+      console.error("Lovable AI error", aiResp.status, errorText);
+      if (aiResp.status === 429) return res.status(429).json({ error: "Limite de pedidos atingido. Tente novamente em instantes." });
+      if (aiResp.status === 402) return res.status(402).json({ error: "Créditos da IA esgotados. Adicione créditos na área de trabalho." });
       return res.status(500).json({ error: "Erro ao gerar texto com IA." });
     }
 
     const data = await aiResp.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const text = data?.choices?.[0]?.message?.content?.trim();
 
     if (!text) return res.status(500).json({ error: "Resposta vazia da IA." });
+
 
     const academicWork = parseAcademicWork(text, body);
     return res.status(200).json({ work: academicWork });
