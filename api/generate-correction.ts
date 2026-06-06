@@ -1,9 +1,10 @@
-// Vercel Node runtime — using built-in types (Node http)
+// Vercel Node runtime — Lovable AI Gateway
 import type { IncomingMessage, ServerResponse } from "http";
 type VercelRequest = IncomingMessage & { body: any; query: Record<string, string | string[]>; method?: string };
 type VercelResponse = ServerResponse & { status: (code: number) => VercelResponse; json: (data: any) => VercelResponse; send: (data: any) => VercelResponse };
 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const MODEL = "google/gemini-2.5-flash";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -13,8 +14,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_API_KEY) return res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+  const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
+  if (!LOVABLE_API_KEY) return res.status(500).json({ error: "LOVABLE_API_KEY não configurada no servidor." });
 
   const { imageBase64, mimeType, course, educationLevel, examTitle } = req.body || {};
   if (!imageBase64 || typeof imageBase64 !== "string" || imageBase64.length < 20) {
@@ -62,35 +63,37 @@ Formato de resposta (em Markdown):
 
 Responde APENAS com o guião de correção em Markdown.`;
 
+  const dataUrl = `data:${mimeType || "image/jpeg"};base64,${imageBase64}`;
+
   try {
-    const aiResp = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
+    const aiResp = await fetch(AI_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      },
       body: JSON.stringify({
-        contents: [{
+        model: MODEL,
+        messages: [{
           role: "user",
-          parts: [
-            { text: prompt },
-            {
-              inlineData: {
-                mimeType: mimeType || "image/jpeg",
-                data: imageBase64,
-              },
-            },
+          content: [
+            { type: "text", text: prompt },
+            { type: "image_url", image_url: { url: dataUrl } },
           ],
         }],
-        generationConfig: { temperature: 0.3 },
       }),
     });
 
     if (!aiResp.ok) {
       const errorText = await aiResp.text();
-      console.error("Gemini error", aiResp.status, errorText);
+      console.error("Lovable AI error", aiResp.status, errorText);
+      if (aiResp.status === 429) return res.status(429).json({ error: "Limite de pedidos atingido. Tente novamente em instantes." });
+      if (aiResp.status === 402) return res.status(402).json({ error: "Créditos da IA esgotados. Adicione créditos na área de trabalho." });
       return res.status(500).json({ error: "Erro ao analisar o exame." });
     }
 
     const data = await aiResp.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const text = data?.choices?.[0]?.message?.content?.trim();
 
     if (!text) return res.status(500).json({ error: "A IA devolveu uma resposta vazia." });
 
