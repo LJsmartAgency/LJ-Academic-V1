@@ -1,9 +1,11 @@
-// Vercel Node runtime — using built-in types (Node http)
+// Vercel Node runtime — Lovable AI Gateway
 import type { IncomingMessage, ServerResponse } from "http";
 type VercelRequest = IncomingMessage & { body: any; query: Record<string, string | string[]>; method?: string };
 type VercelResponse = ServerResponse & { status: (code: number) => VercelResponse; json: (data: any) => VercelResponse; send: (data: any) => VercelResponse };
 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const MODEL = "google/gemini-2.5-flash";
+
 
 interface WorkFormPayload {
   educationLevel: string;
@@ -78,13 +80,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_API_KEY) return res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+  const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
+  if (!LOVABLE_API_KEY) return res.status(500).json({ error: "LOVABLE_API_KEY não configurada no servidor." });
 
   const body = req.body as WorkFormPayload;
   if (!body?.theme || !body?.area || !body?.workType) {
     return res.status(400).json({ error: "Campos obrigatórios em falta." });
   }
+
+
 
   const language = body.languageEn ? "en" : "pt-PT";
   const pdfContext = body.pdfText
