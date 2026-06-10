@@ -4,8 +4,8 @@ type VercelRequest = IncomingMessage & { body: any; query: Record<string, string
 type VercelResponse = ServerResponse & { status: (code: number) => VercelResponse; json: (data: any) => VercelResponse; send: (data: any) => VercelResponse };
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// Modelo Groq actualmente activo (Llama 3.1 70B). Trocar aqui se a Groq descontinuar.
-const MODEL = "llama-3.1-70b-versatile";
+// Modelo Groq activo. Se a Groq descontinuar, trocar por outro de https://console.groq.com/docs/models
+const MODEL = "llama-3.3-70b-versatile";
 
 interface WorkFormPayload {
   educationLevel: string;
