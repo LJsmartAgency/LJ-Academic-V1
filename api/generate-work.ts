@@ -4,6 +4,7 @@ type VercelRequest = IncomingMessage & { body: any; query: Record<string, string
 type VercelResponse = ServerResponse & { status: (code: number) => VercelResponse; json: (data: any) => VercelResponse; send: (data: any) => VercelResponse };
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+// Modelo Groq activo. Se a Groq descontinuar, trocar por outro de https://console.groq.com/docs/models
 const MODEL = "llama-3.3-70b-versatile";
 
 interface WorkFormPayload {
@@ -147,7 +148,8 @@ ${pdfContext}`;
       const errorText = await aiResp.text();
       console.error("Groq error", aiResp.status, errorText);
       if (aiResp.status === 429) return res.status(429).json({ error: "Limite de pedidos atingido. Tente novamente em instantes." });
-      return res.status(500).json({ error: "Erro ao gerar texto com IA." });
+      if (aiResp.status === 401) return res.status(401).json({ error: "GROQ_API_KEY inválida. Verifique a chave no Vercel." });
+      return res.status(500).json({ error: `Groq ${aiResp.status}: ${errorText.slice(0, 400)}` });
     }
 
     const data = await aiResp.json();
