@@ -1,10 +1,11 @@
-// Vercel Node runtime — Google Gemini API
+// Vercel Node runtime — Groq API (OpenAI-compatible, vision model)
 import type { IncomingMessage, ServerResponse } from "http";
 type VercelRequest = IncomingMessage & { body: any; query: Record<string, string | string[]>; method?: string };
 type VercelResponse = ServerResponse & { status: (code: number) => VercelResponse; json: (data: any) => VercelResponse; send: (data: any) => VercelResponse };
 
-const MODEL = "gemini-2.0-flash";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+// Modelo vision da Groq (Llama 4 Scout — suporta imagens)
+const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -14,8 +15,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_API_KEY) return res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+  const GROQ_API_KEY = process.env.GROQ_API_KEY;
+  if (!GROQ_API_KEY) return res.status(500).json({ error: "GROQ_API_KEY não configurada no servidor." });
 
   const { imageBase64, mimeType, course, educationLevel, examTitle } = req.body || {};
   if (!imageBase64 || typeof imageBase64 !== "string" || imageBase64.length < 20) {
@@ -64,29 +65,42 @@ Formato de resposta (em Markdown):
 Responde APENAS com o guião de correção em Markdown.`;
 
   try {
-    const aiResp = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
+    const aiResp = await fetch(GROQ_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+      },
       body: JSON.stringify({
-        contents: [{
-          role: "user",
-          parts: [
-            { text: prompt },
-            { inline_data: { mime_type: mimeType || "image/jpeg", data: imageBase64 } },
-          ],
-        }],
+        model: MODEL,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:${mimeType || "image/jpeg"};base64,${imageBase64}`,
+                },
+              },
+            ],
+          },
+        ],
+        temperature: 0.5,
+        max_tokens: 8000,
       }),
     });
 
     if (!aiResp.ok) {
       const errorText = await aiResp.text();
-      console.error("Gemini error", aiResp.status, errorText);
+      console.error("Groq error", aiResp.status, errorText);
       if (aiResp.status === 429) return res.status(429).json({ error: "Limite de pedidos atingido. Tente novamente em instantes." });
       return res.status(500).json({ error: "Erro ao analisar o exame." });
     }
 
     const data = await aiResp.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const text = data?.choices?.[0]?.message?.content?.trim();
 
     if (!text) return res.status(500).json({ error: "A IA devolveu uma resposta vazia." });
 
