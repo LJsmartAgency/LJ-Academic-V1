@@ -148,7 +148,8 @@ ${pdfContext}`;
       const errorText = await aiResp.text();
       console.error("Groq error", aiResp.status, errorText);
       if (aiResp.status === 429) return res.status(429).json({ error: "Limite de pedidos atingido. Tente novamente em instantes." });
-      return res.status(500).json({ error: "Erro ao gerar texto com IA." });
+      if (aiResp.status === 401) return res.status(401).json({ error: "GROQ_API_KEY inválida. Verifique a chave no Vercel." });
+      return res.status(500).json({ error: `Groq ${aiResp.status}: ${errorText.slice(0, 400)}` });
     }
 
     const data = await aiResp.json();
