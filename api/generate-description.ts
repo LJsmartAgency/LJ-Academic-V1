@@ -55,9 +55,17 @@ REGRAS OBRIGATÓRIAS:
     }
 
     const data = await aiResp.json();
-    const text = data?.choices?.[0]?.message?.content?.trim();
+    let text = data?.choices?.[0]?.message?.content?.trim();
 
     if (!text) return res.status(500).json({ error: "A IA devolveu uma resposta vazia." });
+
+    // Sanitização: remover markdown/aspas e garantir limite de 600 caracteres
+    text = text.replace(/^["'`*_#\s]+|["'`*_#\s]+$/g, "").replace(/\s+/g, " ").trim();
+    if (text.length > 590) {
+      const cut = text.slice(0, 590);
+      const lastDot = Math.max(cut.lastIndexOf("."), cut.lastIndexOf("!"), cut.lastIndexOf("?"));
+      text = lastDot > 200 ? cut.slice(0, lastDot + 1) : cut + "...";
+    }
 
     return res.status(200).json({ description: text });
   } catch (error) {
