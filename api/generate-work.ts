@@ -22,51 +22,70 @@ interface WorkFormPayload {
   pdfText?: string;
 }
 
+function stripHeadingMarkup(line: string): string {
+  // Remove markdown (**, ##, #), numeração (1., 1), I., II.), bullets e espaços
+  return line
+    .replace(/^[#>\-\*\s]+/, "")
+    .replace(/\*+/g, "")
+    .replace(/^\s*([IVX]+|\d+)[\.\)]\s*/i, "")
+    .replace(/[:：]\s*$/, "")
+    .trim();
+}
+
+function detectSection(line: string): "indice" | "resumo" | "intro" | "dev" | "concl" | "refs" | null {
+  const clean = stripHeadingMarkup(line).toUpperCase();
+  if (!clean || clean.length > 60) return null;
+  if (/^(ÍNDICE|INDICE|SUMÁRIO|SUMARIO)\b/.test(clean)) return "indice";
+  if (/^RESUMO\b/.test(clean) || /^ABSTRACT\b/.test(clean)) return "resumo";
+  if (/^(INTRODUÇÃO|INTRODUCAO|INTRODUCTION)\b/.test(clean)) return "intro";
+  if (/^DESENVOLVIMENTO\b/.test(clean)) return "dev";
+  if (/^(CONCLUSÃO|CONCLUSAO|CONCLUSION|CONSIDERAÇÕES FINAIS|CONSIDERACOES FINAIS)\b/.test(clean)) return "concl";
+  if (/^(REFERÊNCIAS|REFERENCIAS|REFERENCES|BIBLIOGRAFIA)\b/.test(clean)) return "refs";
+  return null;
+}
+
 function parseAcademicWork(text: string, body: WorkFormPayload) {
-  let indexText = "";
-  let resumoText = "";
-  let introText = "";
-  let devText = "";
-  let conclText = "";
+  const buckets = { indice: "", resumo: "", intro: "", dev: "", concl: "" };
   const refs: string[] = [];
 
-  const lines = text.split(/\n+/).map((l) => l.trim());
-  let current: "" | "indice" | "resumo" | "intro" | "dev" | "concl" | "refs" = "";
+  const lines = text.split(/\r?\n/);
+  let current: keyof typeof buckets | "refs" | "" = "";
 
   for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) continue;
-    const upper = line.toUpperCase();
-
-    if (upper.startsWith("ÍNDICE") || upper.startsWith("INDICE")) { current = "indice"; continue; }
-    if (upper.startsWith("RESUMO")) { current = "resumo"; continue; }
-    if (upper.startsWith("INTRODUÇÃO") || upper.startsWith("INTRODUCAO")) { current = "intro"; continue; }
-    if (upper.startsWith("DESENVOLVIMENTO")) { current = "dev"; continue; }
-    if (upper.startsWith("CONCLUSÃO") || upper.startsWith("CONCLUSAO")) { current = "concl"; continue; }
-    if (upper.startsWith("REFERÊNCIAS") || upper.startsWith("REFERENCIAS")) { current = "refs"; continue; }
-
-    switch (current) {
-      case "indice": indexText += (indexText ? "\n" : "") + line; break;
-      case "resumo": resumoText += (resumoText ? "\n" : "") + line; break;
-      case "intro": introText += (introText ? "\n" : "") + line; break;
-      case "dev": devText += (devText ? "\n" : "") + line; break;
-      case "concl": conclText += (conclText ? "\n" : "") + line; break;
-      case "refs": refs.push(line); break;
+    const line = raw.trimEnd();
+    if (!line.trim()) {
+      if (current && current !== "refs") buckets[current] += "\n";
+      continue;
+    }
+    const section = detectSection(line);
+    if (section) { current = section; continue; }
+    if (!current) { current = "intro"; }
+    if (current === "refs") {
+      const cleaned = line.replace(/^[\-\*\d\.\)\s]+/, "").trim();
+      if (cleaned) refs.push(cleaned);
+    } else {
+      buckets[current] += (buckets[current] ? "\n" : "") + line.trim();
     }
   }
 
-  const summary = resumoText ||
+  // Fallback: se não detectou nenhuma secção principal, mete tudo no Desenvolvimento
+  const hasAny = buckets.resumo || buckets.intro || buckets.dev || buckets.concl;
+  if (!hasAny) {
+    buckets.dev = text.trim();
+  }
+
+  const summary = buckets.resumo ||
     `Trabalho académico do tipo ${body.workType.toLowerCase()} em ${body.area.toLowerCase()}, com foco em "${body.theme}".`;
 
   return {
     title: `${body.workType} em ${body.area}: ${body.theme.substring(0, 80)}`,
     summary,
     sections: [
-      { heading: "Índice", content: indexText },
-      { heading: "Resumo", content: resumoText },
-      { heading: "Introdução", content: introText },
-      { heading: "Desenvolvimento", content: devText },
-      { heading: "Conclusão", content: conclText },
+      { heading: "Índice", content: buckets.indice.trim() },
+      { heading: "Resumo", content: buckets.resumo.trim() },
+      { heading: "Introdução", content: buckets.intro.trim() },
+      { heading: "Desenvolvimento", content: buckets.dev.trim() },
+      { heading: "Conclusão", content: buckets.concl.trim() },
     ],
     references: refs.length ? refs : ["Adicione aqui as referências bibliográficas com base nas fontes que utilizou."],
   };
