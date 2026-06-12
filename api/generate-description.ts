@@ -22,15 +22,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "Informe o tema do trabalho primeiro." });
   }
 
-  const prompt = `Com base no tema "${theme}"${area ? ` na área de ${area}` : ""}${educationLevel ? ` ao nível de ${educationLevel}` : ""}, gere uma descrição detalhada para um trabalho académico.
+  const prompt = `Com base no tema "${theme}"${area ? ` na área de ${area}` : ""}${educationLevel ? ` ao nível de ${educationLevel}` : ""}, gere uma descrição curta para um trabalho académico.
 
-A descrição deve:
-- Ter entre 3 a 5 frases
-- Explicar o foco do trabalho, os objectivos principais e o problema a estudar
-- Usar linguagem académica formal em português de Portugal
-- Ser clara e objectiva
-
-Responda APENAS com o texto da descrição, sem títulos nem formatação extra.`;
+REGRAS OBRIGATÓRIAS:
+- MÁXIMO ABSOLUTO de 550 caracteres (conta letras, espaços e pontuação).
+- 2 a 4 frases curtas.
+- Linguagem académica formal em português de Portugal.
+- Explica foco, objectivo e problema a estudar de forma concisa.
+- Responde APENAS com o texto da descrição, sem títulos, sem aspas, sem formatação markdown.`;
 
   try {
     const aiResp = await fetch(GROQ_URL, {
@@ -42,7 +41,8 @@ Responda APENAS com o texto da descrição, sem títulos nem formatação extra.
       body: JSON.stringify({
         model: MODEL,
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
+        temperature: 0.6,
+        max_tokens: 300,
       }),
     });
 
@@ -55,9 +55,17 @@ Responda APENAS com o texto da descrição, sem títulos nem formatação extra.
     }
 
     const data = await aiResp.json();
-    const text = data?.choices?.[0]?.message?.content?.trim();
+    let text = data?.choices?.[0]?.message?.content?.trim();
 
     if (!text) return res.status(500).json({ error: "A IA devolveu uma resposta vazia." });
+
+    // Sanitização: remover markdown/aspas e garantir limite de 600 caracteres
+    text = text.replace(/^["'`*_#\s]+|["'`*_#\s]+$/g, "").replace(/\s+/g, " ").trim();
+    if (text.length > 590) {
+      const cut = text.slice(0, 590);
+      const lastDot = Math.max(cut.lastIndexOf("."), cut.lastIndexOf("!"), cut.lastIndexOf("?"));
+      text = lastDot > 200 ? cut.slice(0, lastDot + 1) : cut + "...";
+    }
 
     return res.status(200).json({ description: text });
   } catch (error) {
