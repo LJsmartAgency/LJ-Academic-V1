@@ -112,40 +112,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ? `\n\nO trabalho deve ser baseado e alinhado com o seguinte conteúdo extraído de um PDF fornecido pelo utilizador. Não copies texto palavra por palavra; em vez disso, sintetiza, explica e organiza academicamente o conteúdo abaixo, mantendo o sentido principal:\n\n"""\n${body.pdfText.substring(0, 8000)}\n"""\n`
     : "";
 
-  const prompt = `Gere um trabalho académico completo, longo e detalhado, com a seguinte estrutura, escrevendo em ${language}:
+  const prompt = `Gere um trabalho académico COMPLETO, LONGO e DETALHADO em ${language}. Não resumas, não abrevies. Cada secção deve conter texto corrido extenso.
 
-PÁGINA 1 - ÍNDICE
-- Comece com o título "ÍNDICE".
-- Em seguida liste, numerados, todos os títulos e subtítulos do trabalho.
-- IMPORTANTE: Nesta página de índice NÃO escreva nenhum parágrafo de conteúdo.
+Estrutura obrigatória (usa exactamente estes cabeçalhos em MAIÚSCULAS, em linhas separadas, sem numeração nem markdown):
 
-Depois do índice, escreva o texto completo do trabalho com as secções seguintes:
+ÍNDICE
+Lista numerada de todos os títulos e subtítulos do trabalho (apenas a lista, sem conteúdo).
 
 RESUMO
-- Escreva um resumo académico formal do trabalho, com 150 a 300 palavras.
+Resumo académico de 200 a 300 palavras em texto corrido.
 
 INTRODUÇÃO
-- Contextualize o tema e apresente o problema de investigação, justificativa, objectivos e metodologia.
-- Use 3 a 6 parágrafos coesos.
+4 a 6 parágrafos extensos com contextualização, problema, justificativa, objectivos (geral e específicos) e metodologia.
 
 DESENVOLVIMENTO
-- Deve ser a parte mais longa do trabalho (pelo menos 60% de todo o texto).
-- Traga fundamentação teórica, explicações técnicas, definições, exemplos e análise crítica.
-- Organize com vários subtítulos em negrito.
+Esta é a parte MAIS LONGA do trabalho (pelo menos 70% do texto total).
+Organiza em 4 a 6 subtítulos. Para CADA subtítulo escreve OBRIGATORIAMENTE 3 a 5 parágrafos completos (mínimo 200 palavras por subtítulo) com fundamentação teórica, definições, exemplos práticos, análise crítica e ligações ao tema.
+NUNCA escrevas apenas o subtítulo sem desenvolver o conteúdo por baixo.
+Formato de cada subtítulo:
+**Nome do Subtítulo**
+[3 a 5 parágrafos completos de texto académico aqui]
 
 CONCLUSÃO
-- Síntese dos principais pontos e retome os objectivos.
+3 a 5 parágrafos retomando objectivos, sintetizando resultados e apontando limitações e investigações futuras.
 
 REFERÊNCIAS
-- Liste as referências em linhas separadas.
+Lista de 5 a 10 referências reais no formato ${body.style || "APA"}, uma por linha.
 
-Regras gerais:
-- Nível de ensino: ${body.educationLevel}.
-- Tipo de trabalho: ${body.workType}.
-- Área/disciplina: ${body.area}.
-- Tema: ${body.theme}.${body.description ? `\n- Descrição: ${body.description}` : ""}
-- Comprimento: ~${body.pages} páginas A4.
-- Tom formal académico.
+Dados do trabalho:
+- Nível de ensino: ${body.educationLevel}
+- Tipo: ${body.workType}
+- Área: ${body.area}
+- Tema: ${body.theme}${body.description ? `\n- Descrição/foco: ${body.description}` : ""}
+- Extensão alvo: ~${body.pages} páginas A4 (texto longo e denso)
+- Tom: formal académico, em português de Portugal${body.languageEn ? " e inglês" : ""}
 ${pdfContext}`;
 
   try {
@@ -158,7 +158,7 @@ ${pdfContext}`;
       body: JSON.stringify({
         model: MODEL,
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
+        temperature: 0.75,
         max_tokens: 8000,
       }),
     });
