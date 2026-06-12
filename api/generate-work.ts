@@ -112,40 +112,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ? `\n\nO trabalho deve ser baseado e alinhado com o seguinte conteúdo extraído de um PDF fornecido pelo utilizador. Não copies texto palavra por palavra; em vez disso, sintetiza, explica e organiza academicamente o conteúdo abaixo, mantendo o sentido principal:\n\n"""\n${body.pdfText.substring(0, 8000)}\n"""\n`
     : "";
 
-  const prompt = `Gere um trabalho académico COMPLETO, LONGO e DETALHADO em ${language}. Não resumas, não abrevies. Cada secção deve conter texto corrido extenso.
+  const pages = Math.max(1, Math.min(120, Number(body.pages) || 5));
+  // ~300 palavras por página A4 com formatação académica padrão
+  const totalWords = pages * 300;
+  const introWords = Math.round(totalWords * 0.12);
+  const devWords = Math.round(totalWords * 0.65);
+  const conclWords = Math.round(totalWords * 0.10);
+  const resumoWords = Math.min(350, Math.round(totalWords * 0.05));
+  // Número de subtítulos do desenvolvimento escala com páginas
+  const devSubs = Math.max(3, Math.min(10, Math.ceil(pages / 2)));
+  const wordsPerSub = Math.round(devWords / devSubs);
+  // Tokens: ~1.5 tokens/palavra PT + folga; cap a 8000 (limite Groq) — se pedido for maior, avisar prompt
+  const targetTokens = Math.min(8000, Math.round(totalWords * 1.6) + 500);
 
-Estrutura obrigatória (usa exactamente estes cabeçalhos em MAIÚSCULAS, em linhas separadas, sem numeração nem markdown):
+  const prompt = `Gere um trabalho académico COMPLETO em ${language}, com EXTENSÃO PROPORCIONAL ao número de páginas pedidas (${pages} páginas A4 ≈ ${totalWords} palavras de conteúdo).
+
+NÃO RESUMAS. NÃO ABREVIES. Cumpre os mínimos de palavras indicados em cada secção.
+
+Estrutura obrigatória (usa exactamente estes cabeçalhos em MAIÚSCULAS, em linhas isoladas, sem numeração nem markdown nos cabeçalhos principais):
 
 ÍNDICE
-Lista numerada de todos os títulos e subtítulos do trabalho (apenas a lista, sem conteúdo).
+Lista numerada de todos os títulos e subtítulos (apenas a lista).
 
 RESUMO
-Resumo académico de 200 a 300 palavras em texto corrido.
+Resumo académico de aproximadamente ${resumoWords} palavras, em texto corrido.
 
 INTRODUÇÃO
-4 a 6 parágrafos extensos com contextualização, problema, justificativa, objectivos (geral e específicos) e metodologia.
+Cerca de ${introWords} palavras, distribuídas em 3 a 6 parágrafos com contextualização, problema, justificativa, objectivos (geral e específicos) e metodologia.
 
 DESENVOLVIMENTO
-Esta é a parte MAIS LONGA do trabalho (pelo menos 70% do texto total).
-Organiza em 4 a 6 subtítulos. Para CADA subtítulo escreve OBRIGATORIAMENTE 3 a 5 parágrafos completos (mínimo 200 palavras por subtítulo) com fundamentação teórica, definições, exemplos práticos, análise crítica e ligações ao tema.
-NUNCA escrevas apenas o subtítulo sem desenvolver o conteúdo por baixo.
+Esta é a parte MAIS LONGA: aproximadamente ${devWords} palavras no total.
+Divide em ${devSubs} subtítulos numerados. Para CADA subtítulo escreve OBRIGATORIAMENTE cerca de ${wordsPerSub} palavras (3 a 6 parágrafos completos) com fundamentação teórica, definições, exemplos práticos, análise crítica e ligações ao tema.
+PROIBIDO escrever apenas o subtítulo sem desenvolver o conteúdo por baixo.
 Formato de cada subtítulo:
 **Nome do Subtítulo**
-[3 a 5 parágrafos completos de texto académico aqui]
+[parágrafos completos de texto académico, ~${wordsPerSub} palavras]
 
 CONCLUSÃO
-3 a 5 parágrafos retomando objectivos, sintetizando resultados e apontando limitações e investigações futuras.
+Cerca de ${conclWords} palavras em 3 a 5 parágrafos retomando objectivos, sintetizando resultados e apontando limitações e investigações futuras.
 
 REFERÊNCIAS
-Lista de 5 a 10 referências reais no formato ${body.style || "APA"}, uma por linha.
+Lista de ${Math.max(5, Math.min(15, pages))} referências reais no formato ${body.style || "APA"}, uma por linha.
 
 Dados do trabalho:
 - Nível de ensino: ${body.educationLevel}
 - Tipo: ${body.workType}
 - Área: ${body.area}
 - Tema: ${body.theme}${body.description ? `\n- Descrição/foco: ${body.description}` : ""}
-- Extensão alvo: ~${body.pages} páginas A4 (texto longo e denso)
+- Páginas pedidas: ${pages} (≈ ${totalWords} palavras)
 - Tom: formal académico, em português de Portugal${body.languageEn ? " e inglês" : ""}
+
+IMPORTANTE: Conta as palavras à medida que escreves. Se chegares ao fim do desenvolvimento com menos palavras do que o pedido, ADICIONA mais parágrafos a cada subtítulo até atingir o alvo. Não termines antes de cumprir a extensão.
 ${pdfContext}`;
 
   try {
@@ -159,7 +176,7 @@ ${pdfContext}`;
         model: MODEL,
         messages: [{ role: "user", content: prompt }],
         temperature: 0.75,
-        max_tokens: 8000,
+        max_tokens: targetTokens,
       }),
     });
 
