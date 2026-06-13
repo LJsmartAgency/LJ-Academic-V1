@@ -4,7 +4,6 @@ type VercelRequest = IncomingMessage & { body: any; query: Record<string, string
 type VercelResponse = ServerResponse & { status: (code: number) => VercelResponse; json: (data: any) => VercelResponse; send: (data: any) => VercelResponse };
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// Modelo Groq activo. Se a Groq descontinuar, trocar por outro de https://console.groq.com/docs/models
 const MODEL = "llama-3.3-70b-versatile";
 
 interface WorkFormPayload {
@@ -22,70 +21,85 @@ interface WorkFormPayload {
   pdfText?: string;
 }
 
-function stripHeadingMarkup(line: string): string {
-  // Remove markdown (**, ##, #), numeração (1., 1), I., II.), bullets e espaços
-  return line
-    .replace(/^[#>\-\*\s]+/, "")
-    .replace(/\*+/g, "")
-    .replace(/^\s*([IVX]+|\d+)[\.\)]\s*/i, "")
-    .replace(/[:：]\s*$/, "")
-    .trim();
+// Extrai conteúdo entre delimitadores [[SECTION:NAME]] ... [[/SECTION:NAME]]
+function extractBlock(text: string, name: string): string {
+  const re = new RegExp(`\\[\\[SECTION:${name}\\]\\]([\\s\\S]*?)\\[\\[/SECTION:${name}\\]\\]`, "i");
+  const m = text.match(re);
+  return m ? m[1].trim() : "";
 }
 
-function detectSection(line: string): "indice" | "resumo" | "intro" | "dev" | "concl" | "refs" | null {
-  const clean = stripHeadingMarkup(line).toUpperCase();
-  if (!clean || clean.length > 60) return null;
-  if (/^(ÍNDICE|INDICE|SUMÁRIO|SUMARIO)\b/.test(clean)) return "indice";
-  if (/^RESUMO\b/.test(clean) || /^ABSTRACT\b/.test(clean)) return "resumo";
-  if (/^(INTRODUÇÃO|INTRODUCAO|INTRODUCTION)\b/.test(clean)) return "intro";
-  if (/^DESENVOLVIMENTO\b/.test(clean)) return "dev";
-  if (/^(CONCLUSÃO|CONCLUSAO|CONCLUSION|CONSIDERAÇÕES FINAIS|CONSIDERACOES FINAIS)\b/.test(clean)) return "concl";
-  if (/^(REFERÊNCIAS|REFERENCIAS|REFERENCES|BIBLIOGRAFIA)\b/.test(clean)) return "refs";
-  return null;
+// Fallback baseado em cabeçalhos quando os delimitadores falham
+function fallbackHeaderSplit(text: string) {
+  const buckets = { indice: "", resumo: "", intro: "", dev: "", concl: "", refs: "" };
+  const re = /^\s*(?:\*\*|##?\s*)?\s*(ÍNDICE|INDICE|RESUMO|INTRODUÇÃO|INTRODUCAO|DESENVOLVIMENTO|CONCLUSÃO|CONCLUSAO|REFERÊNCIAS|REFERENCIAS|BIBLIOGRAFIA)\s*(?:\*\*)?\s*:?\s*$/gim;
+  const matches: Array<{ key: keyof typeof buckets; start: number; end: number }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const up = m[1].toUpperCase();
+    let key: keyof typeof buckets = "intro";
+    if (up.startsWith("ÍND") || up.startsWith("IND")) key = "indice";
+    else if (up.startsWith("RES")) key = "resumo";
+    else if (up.startsWith("INTR")) key = "intro";
+    else if (up.startsWith("DES")) key = "dev";
+    else if (up.startsWith("CON")) key = "concl";
+    else key = "refs";
+    matches.push({ key, start: m.index + m[0].length, end: -1 });
+    if (matches.length > 1) matches[matches.length - 2].end = m.index;
+  }
+  if (matches.length) matches[matches.length - 1].end = text.length;
+  for (const mt of matches) buckets[mt.key] = text.slice(mt.start, mt.end).trim();
+  return buckets;
 }
 
 function parseAcademicWork(text: string, body: WorkFormPayload) {
-  const buckets = { indice: "", resumo: "", intro: "", dev: "", concl: "" };
-  const refs: string[] = [];
+  // Primeiro: tentar delimitadores explícitos
+  let indice = extractBlock(text, "INDICE");
+  let resumo = extractBlock(text, "RESUMO");
+  let intro = extractBlock(text, "INTRODUCAO");
+  let dev = extractBlock(text, "DESENVOLVIMENTO");
+  let concl = extractBlock(text, "CONCLUSAO");
+  let refsBlock = extractBlock(text, "REFERENCIAS");
 
-  const lines = text.split(/\r?\n/);
-  let current: keyof typeof buckets | "refs" | "" = "";
-
-  for (const raw of lines) {
-    const line = raw.trimEnd();
-    if (!line.trim()) {
-      if (current && current !== "refs") buckets[current] += "\n";
-      continue;
-    }
-    const section = detectSection(line);
-    if (section) { current = section; continue; }
-    if (!current) { current = "intro"; }
-    if (current === "refs") {
-      const cleaned = line.replace(/^[\-\*\d\.\)\s]+/, "").trim();
-      if (cleaned) refs.push(cleaned);
-    } else {
-      buckets[current] += (buckets[current] ? "\n" : "") + line.trim();
-    }
+  // Fallback se nada veio com delimitadores
+  if (!resumo && !intro && !dev && !concl) {
+    const b = fallbackHeaderSplit(text);
+    indice = indice || b.indice;
+    resumo = resumo || b.resumo;
+    intro = intro || b.intro;
+    dev = dev || b.dev;
+    concl = concl || b.concl;
+    refsBlock = refsBlock || b.refs;
   }
 
-  // Fallback: se não detectou nenhuma secção principal, mete tudo no Desenvolvimento
-  const hasAny = buckets.resumo || buckets.intro || buckets.dev || buckets.concl;
-  if (!hasAny) {
-    buckets.dev = text.trim();
+  // Se mesmo assim não houver desenvolvimento mas a introdução estiver muito grande,
+  // assume que tudo veio junto e devolve o texto cru no desenvolvimento.
+  if (!dev && intro && intro.length > 2500) {
+    dev = intro;
+    intro = "";
+  }
+  if (!dev && !intro && !resumo && !concl) {
+    dev = text.trim();
   }
 
-  const summary = buckets.resumo ||
+  const refs = refsBlock
+    ? refsBlock
+        .split(/\r?\n/)
+        .map((l) => l.replace(/^[\-\*\d\.\)\s]+/, "").trim())
+        .filter(Boolean)
+    : [];
+
+  const summary = resumo ||
     `Trabalho académico do tipo ${body.workType.toLowerCase()} em ${body.area.toLowerCase()}, com foco em "${body.theme}".`;
 
   return {
     title: `${body.workType} em ${body.area}: ${body.theme.substring(0, 80)}`,
     summary,
     sections: [
-      { heading: "Índice", content: buckets.indice.trim() },
-      { heading: "Resumo", content: buckets.resumo.trim() },
-      { heading: "Introdução", content: buckets.intro.trim() },
-      { heading: "Desenvolvimento", content: buckets.dev.trim() },
-      { heading: "Conclusão", content: buckets.concl.trim() },
+      { heading: "Índice", content: indice },
+      { heading: "Resumo", content: resumo },
+      { heading: "Introdução", content: intro },
+      { heading: "Desenvolvimento", content: dev },
+      { heading: "Conclusão", content: concl },
     ],
     references: refs.length ? refs : ["Adicione aqui as referências bibliográficas com base nas fontes que utilizou."],
   };
@@ -109,60 +123,73 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const language = body.languageEn ? "en" : "pt-PT";
   const pdfContext = body.pdfText
-    ? `\n\nO trabalho deve ser baseado e alinhado com o seguinte conteúdo extraído de um PDF fornecido pelo utilizador. Não copies texto palavra por palavra; em vez disso, sintetiza, explica e organiza academicamente o conteúdo abaixo, mantendo o sentido principal:\n\n"""\n${body.pdfText.substring(0, 8000)}\n"""\n`
+    ? `\n\nBaseia o trabalho no seguinte conteúdo extraído de um PDF do utilizador. NÃO copies palavra por palavra; sintetiza e organiza academicamente:\n"""\n${body.pdfText.substring(0, 8000)}\n"""\n`
     : "";
 
   const pages = Math.max(1, Math.min(120, Number(body.pages) || 5));
-  // ~300 palavras por página A4 com formatação académica padrão
   const totalWords = pages * 300;
   const introWords = Math.round(totalWords * 0.12);
   const devWords = Math.round(totalWords * 0.65);
   const conclWords = Math.round(totalWords * 0.10);
   const resumoWords = Math.min(350, Math.round(totalWords * 0.05));
-  // Número de subtítulos do desenvolvimento escala com páginas
   const devSubs = Math.max(3, Math.min(10, Math.ceil(pages / 2)));
   const wordsPerSub = Math.round(devWords / devSubs);
-  // Tokens: ~1.5 tokens/palavra PT + folga; cap a 8000 (limite Groq) — se pedido for maior, avisar prompt
-  const targetTokens = Math.min(8000, Math.round(totalWords * 1.6) + 500);
+  const targetTokens = Math.min(8000, Math.round(totalWords * 1.6) + 700);
 
-  const prompt = `Gere um trabalho académico COMPLETO em ${language}, com EXTENSÃO PROPORCIONAL ao número de páginas pedidas (${pages} páginas A4 ≈ ${totalWords} palavras de conteúdo).
+  const prompt = `És um redactor académico profissional. Vais escrever um trabalho COMPLETO em ${language} sobre o tema indicado, com extensão proporcional a ${pages} páginas A4 (≈ ${totalWords} palavras).
 
-NÃO RESUMAS. NÃO ABREVIES. Cumpre os mínimos de palavras indicados em cada secção.
+REGRA CRÍTICA DE FORMATAÇÃO — usa EXACTAMENTE estes delimitadores em maiúsculas. NÃO os traduzas, NÃO acrescentes outros. NADA fora dos blocos.
 
-Estrutura obrigatória (usa exactamente estes cabeçalhos em MAIÚSCULAS, em linhas isoladas, sem numeração nem markdown nos cabeçalhos principais):
+[[SECTION:INDICE]]
+1. Resumo
+2. Introdução
+3. Desenvolvimento
+   3.1 (título do subtítulo 1)
+   3.2 (título do subtítulo 2)
+   ...
+4. Conclusão
+5. Referências Bibliográficas
+[[/SECTION:INDICE]]
 
-ÍNDICE
-Lista numerada de todos os títulos e subtítulos (apenas a lista).
+[[SECTION:RESUMO]]
+Resumo académico de ≈ ${resumoWords} palavras em texto corrido (1 parágrafo).
+[[/SECTION:RESUMO]]
 
-RESUMO
-Resumo académico de aproximadamente ${resumoWords} palavras, em texto corrido.
+[[SECTION:INTRODUCAO]]
+≈ ${introWords} palavras em 3-5 parágrafos: contextualização, problema, justificativa, objectivo geral e específicos, metodologia.
+[[/SECTION:INTRODUCAO]]
 
-INTRODUÇÃO
-Cerca de ${introWords} palavras, distribuídas em 3 a 6 parágrafos com contextualização, problema, justificativa, objectivos (geral e específicos) e metodologia.
+[[SECTION:DESENVOLVIMENTO]]
+Parte mais LONGA: ≈ ${devWords} palavras. Divide em ${devSubs} subtítulos numerados (3.1, 3.2, ...). Para CADA subtítulo escreve OBRIGATORIAMENTE ≈ ${wordsPerSub} palavras (3-6 parágrafos completos) com fundamentação teórica, definições, exemplos, análise crítica e ligação ao tema. Formato de cada subtítulo:
 
-DESENVOLVIMENTO
-Esta é a parte MAIS LONGA: aproximadamente ${devWords} palavras no total.
-Divide em ${devSubs} subtítulos numerados. Para CADA subtítulo escreve OBRIGATORIAMENTE cerca de ${wordsPerSub} palavras (3 a 6 parágrafos completos) com fundamentação teórica, definições, exemplos práticos, análise crítica e ligações ao tema.
-PROIBIDO escrever apenas o subtítulo sem desenvolver o conteúdo por baixo.
-Formato de cada subtítulo:
-**Nome do Subtítulo**
-[parágrafos completos de texto académico, ~${wordsPerSub} palavras]
+**3.1 Título do subtítulo**
 
-CONCLUSÃO
-Cerca de ${conclWords} palavras em 3 a 5 parágrafos retomando objectivos, sintetizando resultados e apontando limitações e investigações futuras.
+Parágrafo 1...
 
-REFERÊNCIAS
-Lista de ${Math.max(5, Math.min(15, pages))} referências reais no formato ${body.style || "APA"}, uma por linha.
+Parágrafo 2...
 
-Dados do trabalho:
+Parágrafo 3...
+
+PROIBIDO escrever só o subtítulo sem desenvolver. PROIBIDO listar bullets em vez de parágrafos.
+[[/SECTION:DESENVOLVIMENTO]]
+
+[[SECTION:CONCLUSAO]]
+≈ ${conclWords} palavras em 3-5 parágrafos: retoma objectivos, sintetiza resultados, indica limitações e investigações futuras.
+[[/SECTION:CONCLUSAO]]
+
+[[SECTION:REFERENCIAS]]
+${Math.max(5, Math.min(15, pages))} referências reais e plausíveis no estilo ${body.style || "APA"}, uma por linha, sem numeração nem bullets.
+[[/SECTION:REFERENCIAS]]
+
+DADOS DO TRABALHO:
 - Nível de ensino: ${body.educationLevel}
 - Tipo: ${body.workType}
 - Área: ${body.area}
 - Tema: ${body.theme}${body.description ? `\n- Descrição/foco: ${body.description}` : ""}
-- Páginas pedidas: ${pages} (≈ ${totalWords} palavras)
-- Tom: formal académico, em português de Portugal${body.languageEn ? " e inglês" : ""}
+- Páginas pedidas: ${pages} (≈ ${totalWords} palavras totais)
+- Tom: formal académico em português de Portugal${body.languageEn ? " e inglês" : ""}
 
-IMPORTANTE: Conta as palavras à medida que escreves. Se chegares ao fim do desenvolvimento com menos palavras do que o pedido, ADICIONA mais parágrafos a cada subtítulo até atingir o alvo. Não termines antes de cumprir a extensão.
+LEMBRA-TE: usa SEMPRE os 6 blocos [[SECTION:...]] ... [[/SECTION:...]] exactamente como acima. Não inventes nomes, não traduzas os delimitadores, não escrevas texto fora deles. Cumpre os mínimos de palavras de cada secção.
 ${pdfContext}`;
 
   try {
@@ -174,8 +201,11 @@ ${pdfContext}`;
       },
       body: JSON.stringify({
         model: MODEL,
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.75,
+        messages: [
+          { role: "system", content: "És um assistente que produz trabalhos académicos completos, longos e bem estruturados em português de Portugal, respeitando rigorosamente os delimitadores [[SECTION:...]] pedidos pelo utilizador." },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.7,
         max_tokens: targetTokens,
       }),
     });
