@@ -13,12 +13,11 @@ import {
   TableCell,
   WidthType,
   ShadingType,
-  HeadingLevel,
 } from "docx";
 import ReactMarkdown from "react-markdown";
 
 import { Button } from "@/components/ui/button";
-import type { AcademicTable, AcademicWork, AcademicWorkSection, WorkFormValues } from "@/lib/generator";
+import type { AcademicTable, AcademicWork, WorkFormValues } from "@/lib/generator";
 
 interface LocationState {
   work?: AcademicWork;
