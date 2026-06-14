@@ -531,19 +531,57 @@ const Result = () => {
                   (s) => s.heading.toLowerCase().startsWith("índice") || s.heading.toLowerCase().startsWith("indice"),
                 );
                 const resumoSection = work.sections.find((s) => s.heading.toLowerCase().startsWith("resumo"));
+                const universityChapters = work.sections.filter((s) => /^cap[íi]tulo\s+[ivx]+/i.test(s.heading));
+                const isUniversity = universityChapters.length > 0;
                 const intro = work.sections.find((s) => s.heading.toLowerCase().startsWith("introdu"));
                 const dev = work.sections.find((s) => s.heading.toLowerCase().startsWith("desenvolv"));
                 const conc = work.sections.find((s) => s.heading.toLowerCase().startsWith("conclus"));
 
-                const renderSection = (title: string, content: string, options: { normalize?: boolean } = {}) => {
-                  const { normalize = true } = options;
+                const renderTable = (table: AcademicTable, idx: number) => (
+                  <div key={`${table.title}-${idx}`} className="mt-4 overflow-x-auto">
+                    <p className="mb-2 text-xs italic text-muted-foreground">Tabela – {table.title}</p>
+                    <table className="w-full border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-primary/10">
+                          {table.headers.map((h, i) => (
+                            <th key={i} className="border border-border px-3 py-2 text-left font-semibold">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {table.rows.map((row, ri) => {
+                          const isTotal = (row[0] || "").trim().toLowerCase() === "total";
+                          return (
+                            <tr key={ri} className={isTotal ? "bg-muted font-semibold" : ""}>
+                              {row.map((cell, ci) => (
+                                <td key={ci} className="border border-border px-3 py-2 align-top">{cell}</td>
+                              ))}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+
+                const renderSection = (
+                  title: string,
+                  content: string,
+                  options: { normalize?: boolean; tables?: AcademicTable[]; chapter?: boolean } = {},
+                ) => {
+                  const { normalize = true, tables, chapter = false } = options;
                   const normalizedContent = normalize ? normalizeSubtitles(content) : content;
                   return (
                     <article key={title} className="space-y-3 border-t border-border/60 pt-6 first:border-none first:pt-0">
-                      <h3 className="text-base font-semibold text-foreground">{title}</h3>
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
-                        <ReactMarkdown>{normalizedContent}</ReactMarkdown>
-                      </div>
+                      <h3 className={chapter ? "text-center text-base font-bold uppercase tracking-wide text-foreground" : "text-base font-semibold text-foreground"}>
+                        {title}
+                      </h3>
+                      {normalizedContent && (
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <ReactMarkdown>{normalizedContent}</ReactMarkdown>
+                        </div>
+                      )}
+                      {tables && tables.map(renderTable)}
                     </article>
                   );
                 };
@@ -552,9 +590,17 @@ const Result = () => {
                   <>
                     {indiceSection && renderSection(indiceSection.heading, indiceSection.content, { normalize: false })}
                     {resumoSection && renderSection("Resumo", resumoSection.content)}
-                    {intro && renderSection("Introdução", intro.content)}
-                    {dev && renderSection("Desenvolvimento", dev.content)}
-                    {conc && renderSection("Conclusão", conc.content)}
+                    {isUniversity
+                      ? universityChapters.map((chap) =>
+                          renderSection(chap.heading, chap.content, { tables: chap.tables, chapter: true }),
+                        )
+                      : (
+                        <>
+                          {intro && renderSection("Introdução", intro.content)}
+                          {dev && renderSection("Desenvolvimento", dev.content)}
+                          {conc && renderSection("Conclusão", conc.content)}
+                        </>
+                      )}
                   </>
                 );
               })()}
