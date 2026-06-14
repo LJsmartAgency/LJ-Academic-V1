@@ -8,11 +8,16 @@ import {
   AlignmentType,
   PageBreak,
   BorderStyle,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  ShadingType,
 } from "docx";
 import ReactMarkdown from "react-markdown";
 
 import { Button } from "@/components/ui/button";
-import type { AcademicWork, WorkFormValues } from "@/lib/generator";
+import type { AcademicTable, AcademicWork, WorkFormValues } from "@/lib/generator";
 
 interface LocationState {
   work?: AcademicWork;
@@ -213,24 +218,74 @@ const buildBackCoverParagraphs = (work: AcademicWork, form: WorkFormValues): Par
   return p;
 };
 
-const downloadWord = async (work: AcademicWork, form?: WorkFormValues) => {
-  const paragraphs: Paragraph[] = [];
+const buildDocxTable = (table: AcademicTable): Table => {
+  const border = { style: BorderStyle.SINGLE, size: 6, color: "888888" };
+  const borders = { top: border, bottom: border, left: border, right: border };
+  const cols = table.headers.length;
+  const totalWidth = 9000;
+  const colWidth = Math.floor(totalWidth / cols);
 
-  // Página 1: Índice (texto vindo da IA)
+  const headerCells = table.headers.map(
+    (h) =>
+      new TableCell({
+        borders,
+        width: { size: colWidth, type: WidthType.DXA },
+        shading: { fill: "EEF2FF", type: ShadingType.CLEAR, color: "auto" },
+        margins: { top: 80, bottom: 80, left: 120, right: 120 },
+        children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
+      }),
+  );
+
+  const bodyRows = table.rows.map((row, idx) => {
+    const isTotal = (row[0] || "").trim().toLowerCase() === "total";
+    return new TableRow({
+      children: Array.from({ length: cols }).map((_, c) => {
+        const text = row[c] || "";
+        return new TableCell({
+          borders,
+          width: { size: colWidth, type: WidthType.DXA },
+          margins: { top: 80, bottom: 80, left: 120, right: 120 },
+          shading: isTotal
+            ? { fill: "F1F5F9", type: ShadingType.CLEAR, color: "auto" }
+            : undefined,
+          children: [new Paragraph({ children: [new TextRun({ text, bold: isTotal })] })],
+        });
+      }),
+      tableHeader: false,
+    });
+  });
+
+  return new Table({
+    width: { size: totalWidth, type: WidthType.DXA },
+    columnWidths: Array.from({ length: cols }, () => colWidth),
+    rows: [new TableRow({ tableHeader: true, children: headerCells }), ...bodyRows],
+  });
+};
+
+const isUniversitySection = (heading: string) => /^cap[íi]tulo\s+[ivx]+/i.test(heading);
+
+const chapterTitleParagraph = (heading: string) =>
+  new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 240, after: 240 },
+    children: [new TextRun({ text: heading.toUpperCase(), bold: true, size: 28 })],
+  });
+
+const downloadWord = async (work: AcademicWork, form?: WorkFormValues) => {
+  const paragraphs: (Paragraph | Table)[] = [];
+
+  const isUniversityWork = work.sections.some((s) => isUniversitySection(s.heading));
+
+  // Página 1: Índice
   paragraphs.push(
     new Paragraph({
       children: [new TextRun({ text: "Índice", bold: true })],
     }),
   );
-
   const indiceSection = work.sections.find((s) => s.heading.toLowerCase().startsWith("índice") || s.heading.toLowerCase().startsWith("indice"));
-  if (indiceSection) {
-    const indiceParagraphs = markdownToParagraphs(indiceSection.content, { normalize: false });
-    paragraphs.push(...indiceParagraphs);
-  }
+  if (indiceSection) paragraphs.push(...markdownToParagraphs(indiceSection.content, { normalize: false }));
 
-
-  // Página 2: Resumo
+  // Resumo
   const resumoSectionWord = work.sections.find((s) => s.heading.toLowerCase().startsWith("resumo"));
   paragraphs.push(
     new Paragraph({
@@ -240,63 +295,58 @@ const downloadWord = async (work: AcademicWork, form?: WorkFormValues) => {
   );
   paragraphs.push(...markdownToParagraphs(resumoSectionWord?.content || work.summary));
 
-  const intro = work.sections.find((s) => s.heading.toLowerCase().startsWith("introdu"));
-  const dev = work.sections.find((s) => s.heading.toLowerCase().startsWith("desenvolv"));
-  const conc = work.sections.find((s) => s.heading.toLowerCase().startsWith("conclus"));
+  if (isUniversityWork) {
+    const chapters = work.sections.filter((s) => isUniversitySection(s.heading));
+    for (const chap of chapters) {
+      paragraphs.push(new Paragraph({ children: [new PageBreak()] }));
+      paragraphs.push(chapterTitleParagraph(chap.heading));
+      if (chap.content) paragraphs.push(...markdownToParagraphs(chap.content));
+      if (chap.tables && chap.tables.length) {
+        for (const t of chap.tables) {
+          paragraphs.push(
+            new Paragraph({
+              spacing: { before: 200, after: 80 },
+              children: [new TextRun({ text: `Tabela – ${t.title}`, bold: true, italics: true })],
+            }),
+          );
+          paragraphs.push(buildDocxTable(t));
+        }
+      }
+    }
+  } else {
+    const intro = work.sections.find((s) => s.heading.toLowerCase().startsWith("introdu"));
+    const dev = work.sections.find((s) => s.heading.toLowerCase().startsWith("desenvolv"));
+    const conc = work.sections.find((s) => s.heading.toLowerCase().startsWith("conclus"));
 
-  if (intro) {
-    paragraphs.push(
-      new Paragraph({
-        pageBreakBefore: true,
-        children: [new TextRun({ text: "Introdução", bold: true })],
-      }),
-    );
-    paragraphs.push(...markdownToParagraphs(intro.content));
+    if (intro) {
+      paragraphs.push(new Paragraph({ pageBreakBefore: true, children: [new TextRun({ text: "Introdução", bold: true })] }));
+      paragraphs.push(...markdownToParagraphs(intro.content));
+    }
+    if (dev) {
+      paragraphs.push(new Paragraph({ pageBreakBefore: true, children: [new TextRun({ text: "Desenvolvimento", bold: true })] }));
+      paragraphs.push(...markdownToParagraphs(dev.content));
+    }
+    if (conc) {
+      paragraphs.push(new Paragraph({ pageBreakBefore: true, children: [new TextRun({ text: "Conclusão", bold: true })] }));
+      paragraphs.push(...markdownToParagraphs(conc.content));
+    }
   }
 
-  if (dev) {
-    paragraphs.push(
-      new Paragraph({
-        pageBreakBefore: true,
-        children: [new TextRun({ text: "Desenvolvimento", bold: true })],
-      }),
-    );
-    paragraphs.push(...markdownToParagraphs(dev.content));
-  }
-
-  if (conc) {
-    paragraphs.push(
-      new Paragraph({
-        pageBreakBefore: true,
-        children: [new TextRun({ text: "Conclusão", bold: true })],
-      }),
-    );
-    paragraphs.push(...markdownToParagraphs(conc.content));
-  }
-
-  // Página final: Referência bibliográfica
+  // Referências
   paragraphs.push(
     new Paragraph({
       pageBreakBefore: true,
-      children: [new TextRun({ text: "Referência bibliográfica", bold: true })],
+      children: [new TextRun({ text: "Referências Bibliográficas", bold: true })],
     }),
   );
   if (work.references.length > 0) {
     for (const ref of work.references) {
-      paragraphs.push(
-        new Paragraph({
-          children: [new TextRun({ text: ref })],
-        }),
-      );
+      paragraphs.push(new Paragraph({ children: [new TextRun({ text: ref })] }));
     }
   } else {
     paragraphs.push(
       new Paragraph({
-        children: [
-          new TextRun({
-            text: "Adicione aqui as referências bibliográficas com base nas fontes que utilizou.",
-          }),
-        ],
+        children: [new TextRun({ text: "Adicione aqui as referências bibliográficas com base nas fontes que utilizou." })],
       }),
     );
   }
@@ -480,19 +530,57 @@ const Result = () => {
                   (s) => s.heading.toLowerCase().startsWith("índice") || s.heading.toLowerCase().startsWith("indice"),
                 );
                 const resumoSection = work.sections.find((s) => s.heading.toLowerCase().startsWith("resumo"));
+                const universityChapters = work.sections.filter((s) => /^cap[íi]tulo\s+[ivx]+/i.test(s.heading));
+                const isUniversity = universityChapters.length > 0;
                 const intro = work.sections.find((s) => s.heading.toLowerCase().startsWith("introdu"));
                 const dev = work.sections.find((s) => s.heading.toLowerCase().startsWith("desenvolv"));
                 const conc = work.sections.find((s) => s.heading.toLowerCase().startsWith("conclus"));
 
-                const renderSection = (title: string, content: string, options: { normalize?: boolean } = {}) => {
-                  const { normalize = true } = options;
+                const renderTable = (table: AcademicTable, idx: number) => (
+                  <div key={`${table.title}-${idx}`} className="mt-4 overflow-x-auto">
+                    <p className="mb-2 text-xs italic text-muted-foreground">Tabela – {table.title}</p>
+                    <table className="w-full border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-primary/10">
+                          {table.headers.map((h, i) => (
+                            <th key={i} className="border border-border px-3 py-2 text-left font-semibold">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {table.rows.map((row, ri) => {
+                          const isTotal = (row[0] || "").trim().toLowerCase() === "total";
+                          return (
+                            <tr key={ri} className={isTotal ? "bg-muted font-semibold" : ""}>
+                              {row.map((cell, ci) => (
+                                <td key={ci} className="border border-border px-3 py-2 align-top">{cell}</td>
+                              ))}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+
+                const renderSection = (
+                  title: string,
+                  content: string,
+                  options: { normalize?: boolean; tables?: AcademicTable[]; chapter?: boolean } = {},
+                ) => {
+                  const { normalize = true, tables, chapter = false } = options;
                   const normalizedContent = normalize ? normalizeSubtitles(content) : content;
                   return (
                     <article key={title} className="space-y-3 border-t border-border/60 pt-6 first:border-none first:pt-0">
-                      <h3 className="text-base font-semibold text-foreground">{title}</h3>
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
-                        <ReactMarkdown>{normalizedContent}</ReactMarkdown>
-                      </div>
+                      <h3 className={chapter ? "text-center text-base font-bold uppercase tracking-wide text-foreground" : "text-base font-semibold text-foreground"}>
+                        {title}
+                      </h3>
+                      {normalizedContent && (
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <ReactMarkdown>{normalizedContent}</ReactMarkdown>
+                        </div>
+                      )}
+                      {tables && tables.map(renderTable)}
                     </article>
                   );
                 };
@@ -501,9 +589,17 @@ const Result = () => {
                   <>
                     {indiceSection && renderSection(indiceSection.heading, indiceSection.content, { normalize: false })}
                     {resumoSection && renderSection("Resumo", resumoSection.content)}
-                    {intro && renderSection("Introdução", intro.content)}
-                    {dev && renderSection("Desenvolvimento", dev.content)}
-                    {conc && renderSection("Conclusão", conc.content)}
+                    {isUniversity
+                      ? universityChapters.map((chap) =>
+                          renderSection(chap.heading, chap.content, { tables: chap.tables, chapter: true }),
+                        )
+                      : (
+                        <>
+                          {intro && renderSection("Introdução", intro.content)}
+                          {dev && renderSection("Desenvolvimento", dev.content)}
+                          {conc && renderSection("Conclusão", conc.content)}
+                        </>
+                      )}
                   </>
                 );
               })()}
