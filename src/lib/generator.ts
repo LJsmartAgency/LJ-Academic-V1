@@ -48,16 +48,9 @@ export const workFormSchema = z
 
 export type WorkFormValues = z.infer<typeof workFormSchema>;
 
-export interface AcademicTable {
-  title: string;
-  headers: string[];
-  rows: string[][];
-}
-
 export interface AcademicWorkSection {
   heading: string;
   content: string;
-  tables?: AcademicTable[];
 }
 
 export interface AcademicWork {
