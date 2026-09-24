@@ -166,30 +166,9 @@ IMPORTANTE: Conta as palavras à medida que escreves. Se chegares ao fim do dese
 ${pdfContext}`;
 
   try {
-    const aiResp = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.75,
-        max_tokens: targetTokens,
-      }),
-    });
-
-    if (!aiResp.ok) {
-      const errorText = await aiResp.text();
-      console.error("Groq error", aiResp.status, errorText);
-      if (aiResp.status === 429) return res.status(429).json({ error: "Limite de pedidos atingido. Tente novamente em instantes." });
-      if (aiResp.status === 401) return res.status(401).json({ error: "GROQ_API_KEY inválida. Verifique a chave no Vercel." });
-      return res.status(500).json({ error: `Groq ${aiResp.status}: ${errorText.slice(0, 400)}` });
-    }
-
-    const data = await aiResp.json();
-    const text = data?.choices?.[0]?.message?.content?.trim();
+    const r = await groqChat(GROQ_API_KEY, [{ role: "user", content: prompt }], { temperature: 0.75, max_tokens: targetTokens });
+    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    const text = r.text;
 
     if (!text) return res.status(500).json({ error: "Resposta vazia da IA." });
 
