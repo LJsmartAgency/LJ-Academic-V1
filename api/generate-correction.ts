@@ -1,11 +1,9 @@
 // Vercel Node runtime — Groq API (OpenAI-compatible, vision model)
 import type { IncomingMessage, ServerResponse } from "http";
+import { groqChat } from "./_groq.js";
 type VercelRequest = IncomingMessage & { body: any; query: Record<string, string | string[]>; method?: string };
 type VercelResponse = ServerResponse & { status: (code: number) => VercelResponse; json: (data: any) => VercelResponse; send: (data: any) => VercelResponse };
 
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// Modelo vision da Groq (Llama 4 Scout — suporta imagens)
-const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -65,43 +63,17 @@ Formato de resposta (em Markdown):
 Responde APENAS com o guião de correção em Markdown.`;
 
   try {
-    const aiResp = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${mimeType || "image/jpeg"};base64,${imageBase64}`,
-                },
-              },
-            ],
-          },
+    const r = await groqChat(GROQ_API_KEY, [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          { type: "image_url", image_url: { url: `data:${mimeType || "image/jpeg"};base64,${imageBase64}` } },
         ],
-        temperature: 0.5,
-        max_tokens: 8000,
-      }),
-    });
-
-    if (!aiResp.ok) {
-      const errorText = await aiResp.text();
-      console.error("Groq error", aiResp.status, errorText);
-      if (aiResp.status === 429) return res.status(429).json({ error: "Limite de pedidos atingido. Tente novamente em instantes." });
-      if (aiResp.status === 401) return res.status(401).json({ error: "GROQ_API_KEY inválida. Verifique a chave no Vercel." });
-      return res.status(500).json({ error: `Groq ${aiResp.status}: ${errorText.slice(0, 400)}` });
-    }
-
-    const data = await aiResp.json();
-    const text = data?.choices?.[0]?.message?.content?.trim();
+      },
+    ], { temperature: 0.5, max_tokens: 8000 }, "vision");
+    if (!r.ok) return res.status(r.status).json({ error: r.error });
+    const text = r.text;
 
     if (!text) return res.status(500).json({ error: "A IA devolveu uma resposta vazia." });
 
