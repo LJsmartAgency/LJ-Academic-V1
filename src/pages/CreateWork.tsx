@@ -203,9 +203,8 @@ const CreateWork = () => {
                           <SelectItem value="Ensino básico">Ensino básico</SelectItem>
                           <SelectItem value="Ensino secundário">Ensino secundário</SelectItem>
                           <SelectItem value="Ensino técnico">Ensino técnico</SelectItem>
-                          <SelectItem value="Licenciatura">Licenciatura</SelectItem>
-                          <SelectItem value="Mestrado">Mestrado</SelectItem>
-                          <SelectItem value="Doutoramento">Doutoramento</SelectItem>
+                          <SelectItem value="Universitário">Universitário</SelectItem>
+
                         </SelectContent>
                       </Select>
                       <FormMessage />

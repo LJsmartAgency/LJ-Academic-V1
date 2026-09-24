@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 const ExamCorrection = () => {
   const { toast } = useToast();
   const [course, setCourse] = useState("");
-  const [educationLevel, setEducationLevel] = useState("Licenciatura");
+  const [educationLevel, setEducationLevel] = useState("Universitário");
   const [examTitle, setExamTitle] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -193,9 +193,8 @@ const ExamCorrection = () => {
                   <SelectContent>
                     <SelectItem value="Ensino secundário">Ensino Secundário</SelectItem>
                     <SelectItem value="Ensino técnico profissional">Ensino Técnico Profissional</SelectItem>
-                    <SelectItem value="Licenciatura">Licenciatura</SelectItem>
-                    <SelectItem value="Mestrado">Mestrado</SelectItem>
-                    <SelectItem value="Doutoramento">Doutoramento</SelectItem>
+                    <SelectItem value="Universitário">Universitário</SelectItem>
+
                     <SelectItem value="Curso profissional">Curso Profissional</SelectItem>
                   </SelectContent>
                 </Select>
