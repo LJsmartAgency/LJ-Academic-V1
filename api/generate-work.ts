@@ -5,7 +5,7 @@ type VercelResponse = ServerResponse & { status: (code: number) => VercelRespons
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 // Modelo Groq activo. Se a Groq descontinuar, trocar por outro de https://console.groq.com/docs/models
-const MODEL = "llama-3.3-70b-versatile";
+const MODEL = "llama-3.1-8b-instant";
 
 interface WorkFormPayload {
   educationLevel: string;
