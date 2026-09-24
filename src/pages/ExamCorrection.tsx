@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 const ExamCorrection = () => {
   const { toast } = useToast();
   const [course, setCourse] = useState("");
-  const [educationLevel, setEducationLevel] = useState("Licenciatura");
+  const [educationLevel, setEducationLevel] = useState("Universitário");
   const [examTitle, setExamTitle] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
