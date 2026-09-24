@@ -312,8 +312,9 @@ const downloadWord = async (work: AcademicWork, form?: WorkFormValues) => {
   const sections: NonNullable<ConstructorParameters<typeof Document>[0]["sections"]>[number][] = [];
 
   if (hasCoverData(form)) {
-    const universityLevels = ["Licenciatura", "Mestrado", "Doutoramento"];
+    const universityLevels = ["Universitário", "Licenciatura", "Mestrado", "Doutoramento"];
     const isUniversity = universityLevels.includes(form?.educationLevel || "");
+
 
     const capa = buildCoverParagraphs(work, form!);
     const coverChildren: Paragraph[] = [...capa];
