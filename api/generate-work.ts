@@ -1,11 +1,9 @@
 // Vercel Node runtime — Groq API (OpenAI-compatible)
 import type { IncomingMessage, ServerResponse } from "http";
+import { groqChat } from "./_groq.js";
 type VercelRequest = IncomingMessage & { body: any; query: Record<string, string | string[]>; method?: string };
 type VercelResponse = ServerResponse & { status: (code: number) => VercelResponse; json: (data: any) => VercelResponse; send: (data: any) => VercelResponse };
 
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// Modelo Groq activo. Se a Groq descontinuar, trocar por outro de https://console.groq.com/docs/models
-const MODEL = "llama-3.1-8b-instant";
 
 interface WorkFormPayload {
   educationLevel: string;

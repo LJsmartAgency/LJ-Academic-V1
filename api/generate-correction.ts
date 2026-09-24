@@ -1,11 +1,9 @@
 // Vercel Node runtime — Groq API (OpenAI-compatible, vision model)
 import type { IncomingMessage, ServerResponse } from "http";
+import { groqChat } from "./_groq.js";
 type VercelRequest = IncomingMessage & { body: any; query: Record<string, string | string[]>; method?: string };
 type VercelResponse = ServerResponse & { status: (code: number) => VercelResponse; json: (data: any) => VercelResponse; send: (data: any) => VercelResponse };
 
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-// Modelo vision da Groq (Llama 4 Scout — suporta imagens)
-const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
