@@ -193,9 +193,8 @@ const ExamCorrection = () => {
                   <SelectContent>
                     <SelectItem value="Ensino secundário">Ensino Secundário</SelectItem>
                     <SelectItem value="Ensino técnico profissional">Ensino Técnico Profissional</SelectItem>
-                    <SelectItem value="Licenciatura">Licenciatura</SelectItem>
-                    <SelectItem value="Mestrado">Mestrado</SelectItem>
-                    <SelectItem value="Doutoramento">Doutoramento</SelectItem>
+                    <SelectItem value="Universitário">Universitário</SelectItem>
+
                     <SelectItem value="Curso profissional">Curso Profissional</SelectItem>
                   </SelectContent>
                 </Select>
