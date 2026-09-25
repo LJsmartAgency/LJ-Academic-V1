@@ -114,7 +114,7 @@ function parseAcademicWork(text: string, body: WorkFormPayload) {
       { heading: "Índice", content: buckets.indice.trim() },
       { heading: "Resumo", content: buckets.resumo.trim() },
       { heading: "Introdução", content: buckets.intro.trim() },
-      { heading: "Desenvolvimento", content: buckets.dev.trim() },
+      { heading: "Desenvolvimento", content: stripDevOutline(buckets.dev.trim()) },
       { heading: "Conclusão", content: buckets.concl.trim() },
     ],
     references: refs.length ? refs : ["Adicione aqui as referências bibliográficas com base nas fontes que utilizou."],
