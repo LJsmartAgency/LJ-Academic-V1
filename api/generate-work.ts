@@ -180,6 +180,31 @@ Se não conheceres o regulamento exacto desta instituição, aplica a norma inte
 5. Inclui pelo menos 3 citações directas curtas e 2 citações longas no desenvolvimento, e TODOS os autores citados no texto devem aparecer nas REFERÊNCIAS.`;
 
 
+  const humanizeRules = `
+
+ESTILO DE ESCRITA HUMANIZADO E PROFISSIONAL
+Escreve como um investigador universitário experiente escreve, não como um modelo de linguagem.
+1. Varia o comprimento das frases e dos parágrafos; alterna frases longas de análise com frases curtas de síntese.
+2. PROIBIDO usar expressões robóticas e repetitivas como: "É importante ressaltar", "É imperioso salientar", "Em suma", "Por fim, conclui-se", "No mundo actual", "Nos dias de hoje", "desempenha um papel crucial", "Este trabalho visa", "Vale a pena mencionar", "Em última análise".
+3. Não comeces vários parágrafos com a mesma palavra ou fórmula. Cada parágrafo abre de maneira diferente.
+4. Argumenta: apresenta a ideia, fundamenta com autores e dados, discute implicações e liga ao parágrafo seguinte com transições naturais.
+5. Usa exemplos concretos, casos reais, números e contexto local em vez de generalidades vagas.
+6. Assume uma voz académica sóbria e confiante; evita entusiasmo publicitário, listas soltas de palavras e frases feitas.
+7. Escreve em português de Portugal, com ortografia pré-Acordo quando apropriado ao contexto académico (objectivo, directo, facto).`;
+
+  const isCitationWork = /cita|fichamento/i.test(body.workType || "");
+  const workTypeRules = isCitationWork
+    ? `
+
+TIPO ESPECIAL: TRABALHO DE CITAÇÕES / FICHAMENTO
+O centro deste trabalho são as fontes e as suas citações.
+1. Em cada subtítulo do desenvolvimento, apresenta o autor e a obra, depois a citação e por fim o comentário crítico do grupo.
+2. Inclui no mínimo 2 citações directas curtas (entre aspas, com autor, ano e página) e 1 citação longa (linha iniciada com "> ") por subtítulo.
+3. Depois de cada citação escreve 1 a 2 parágrafos de análise: o que o autor defende, como se aplica ao tema e que limites ou contrapontos existem.
+4. Confronta autores entre si, mostrando convergências e divergências.
+5. Todas as obras citadas devem constar nas REFERÊNCIAS, completas.`
+    : "";
+
   const prompt = `Gere um trabalho académico COMPLETO em ${language}, com EXTENSÃO PROPORCIONAL ao número de páginas pedidas (${pages} páginas A4 ≈ ${totalWords} palavras de conteúdo).
 
 NÃO RESUMAS. NÃO ABREVIES. Cumpre os mínimos de palavras indicados em cada secção.
