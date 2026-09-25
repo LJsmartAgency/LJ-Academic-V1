@@ -221,7 +221,7 @@ Dados do trabalho:
 - Tom: formal académico, em português de Portugal${body.languageEn ? " e inglês" : ""}
 
 IMPORTANTE: Conta as palavras à medida que escreves. Se chegares ao fim do desenvolvimento com menos palavras do que o pedido, ADICIONA mais parágrafos a cada subtítulo até atingir o alvo. Não termines antes de cumprir a extensão.
-${institutionContext}${citationRules}
+${humanizeRules}${workTypeRules}${institutionContext}${citationRules}
 ${pdfContext}`;
 
 
