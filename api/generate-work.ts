@@ -203,7 +203,7 @@ ${pdfContext}`;
     if (!r.ok) return res.status(r.status).json({ error: r.error });
     const text = r.text;
 
-    if (!text) return res.status(500).json({ error: "Resposta vazia da IA." });
+    if (!text) return res.status(500).json({ error: "Por favor gere novamente." });
 
     const academicWork = parseAcademicWork(text, body);
     return res.status(200).json({ work: academicWork });

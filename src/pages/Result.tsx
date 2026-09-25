@@ -507,7 +507,7 @@ const Result = () => {
   }
 
   const fullText = buildPlainText(work);
-  const indexItems = ["Título", ...work.sections.map((s) => s.heading), "Referência bibliográfica"];
+  const indexItems = buildIndexEntries(work).map((e) => (e.level > 0 ? `   ${e.label}` : e.label));
 
   return (
     <div className="min-h-screen bg-background text-foreground">

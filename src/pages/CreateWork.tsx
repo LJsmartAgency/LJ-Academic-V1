@@ -231,6 +231,7 @@ const CreateWork = () => {
                           <SelectItem value="Projeto de pesquisa">Projeto de investigação</SelectItem>
                           <SelectItem value="TCC">TCC</SelectItem>
                           <SelectItem value="Monografia">Monografia</SelectItem>
+                          <SelectItem value="Trabalho de citações">Trabalho de citações / Fichamento</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
