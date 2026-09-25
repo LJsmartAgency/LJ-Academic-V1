@@ -18,7 +18,13 @@ interface WorkFormPayload {
   tone?: string;
   pdfName?: string;
   pdfText?: string;
+  coverUniversity?: string;
+  coverFaculty?: string;
+  coverCourse?: string;
+  coverSubject?: string;
+  coverLocation?: string;
 }
+
 
 function stripHeadingMarkup(line: string): string {
   // Remove markdown (**, ##, #), numeração (1., 1), I., II.), bullets e espaços
