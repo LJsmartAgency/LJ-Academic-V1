@@ -208,7 +208,8 @@ CONCLUSÃO
 Cerca de ${conclWords} palavras em 3 a 5 parágrafos retomando objectivos, sintetizando resultados e apontando limitações e investigações futuras.
 
 REFERÊNCIAS
-Lista de ${Math.max(5, Math.min(15, pages))} referências reais no formato ${body.style || "APA"}, uma por linha.
+Lista de ${Math.max(5, Math.min(15, pages))} referências reais e completas (autor, ano, título, editora/revista) no formato ${body.style || "APA"}, uma por linha.
+PROIBIDO escrever textos de exemplo como "Adicione aqui as referências" ou referências inventadas sem autor e ano.
 
 Dados do trabalho:
 - Nível de ensino: ${body.educationLevel}
