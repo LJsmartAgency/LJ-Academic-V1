@@ -48,6 +48,31 @@ function detectSection(line: string): "indice" | "resumo" | "intro" | "dev" | "c
   return null;
 }
 
+// Remove a lista de subtítulos que a IA às vezes coloca no início do Desenvolvimento
+function stripDevOutline(dev: string): string {
+  const lines = dev.split(/\n/);
+  const isHeadingLike = (l: string) => {
+    const t = l.trim().replace(/^\*+|\*+$/g, "").trim();
+    if (!t || t.length > 90) return false;
+    return /^\d+(\.\d+)*\s+\S/.test(t) && !/[.;:]$/.test(t);
+  };
+  const titleOf = (l: string) => l.trim().replace(/^\*+|\*+$/g, "").replace(/^\d+(\.\d+)*\s+/, "").trim().toLowerCase();
+
+  let i = 0;
+  const outline: number[] = [];
+  while (i < lines.length) {
+    if (!lines[i].trim()) { i++; continue; }
+    if (isHeadingLike(lines[i])) { outline.push(i); i++; continue; }
+    break;
+  }
+  // Só remove se houver 2+ títulos seguidos sem texto e se repetirem mais abaixo
+  if (outline.length < 2) return dev;
+  const rest = lines.slice(i).join("\n").toLowerCase();
+  const repeated = outline.filter((idx) => rest.includes(titleOf(lines[idx])));
+  if (repeated.length < Math.ceil(outline.length / 2)) return dev;
+  return lines.slice(i).join("\n").trim();
+}
+
 function parseAcademicWork(text: string, body: WorkFormPayload) {
   const buckets = { indice: "", resumo: "", intro: "", dev: "", concl: "" };
   const refs: string[] = [];
@@ -89,7 +114,7 @@ function parseAcademicWork(text: string, body: WorkFormPayload) {
       { heading: "Índice", content: buckets.indice.trim() },
       { heading: "Resumo", content: buckets.resumo.trim() },
       { heading: "Introdução", content: buckets.intro.trim() },
-      { heading: "Desenvolvimento", content: buckets.dev.trim() },
+      { heading: "Desenvolvimento", content: stripDevOutline(buckets.dev.trim()) },
       { heading: "Conclusão", content: buckets.concl.trim() },
     ],
     references: refs.length ? refs : ["Adicione aqui as referências bibliográficas com base nas fontes que utilizou."],
@@ -155,6 +180,31 @@ Se não conheceres o regulamento exacto desta instituição, aplica a norma inte
 5. Inclui pelo menos 3 citações directas curtas e 2 citações longas no desenvolvimento, e TODOS os autores citados no texto devem aparecer nas REFERÊNCIAS.`;
 
 
+  const humanizeRules = `
+
+ESTILO DE ESCRITA HUMANIZADO E PROFISSIONAL
+Escreve como um investigador universitário experiente escreve, não como um modelo de linguagem.
+1. Varia o comprimento das frases e dos parágrafos; alterna frases longas de análise com frases curtas de síntese.
+2. PROIBIDO usar expressões robóticas e repetitivas como: "É importante ressaltar", "É imperioso salientar", "Em suma", "Por fim, conclui-se", "No mundo actual", "Nos dias de hoje", "desempenha um papel crucial", "Este trabalho visa", "Vale a pena mencionar", "Em última análise".
+3. Não comeces vários parágrafos com a mesma palavra ou fórmula. Cada parágrafo abre de maneira diferente.
+4. Argumenta: apresenta a ideia, fundamenta com autores e dados, discute implicações e liga ao parágrafo seguinte com transições naturais.
+5. Usa exemplos concretos, casos reais, números e contexto local em vez de generalidades vagas.
+6. Assume uma voz académica sóbria e confiante; evita entusiasmo publicitário, listas soltas de palavras e frases feitas.
+7. Escreve em português de Portugal, com ortografia pré-Acordo quando apropriado ao contexto académico (objectivo, directo, facto).`;
+
+  const isCitationWork = /cita|fichamento/i.test(body.workType || "");
+  const workTypeRules = isCitationWork
+    ? `
+
+TIPO ESPECIAL: TRABALHO DE CITAÇÕES / FICHAMENTO
+O centro deste trabalho são as fontes e as suas citações.
+1. Em cada subtítulo do desenvolvimento, apresenta o autor e a obra, depois a citação e por fim o comentário crítico do grupo.
+2. Inclui no mínimo 2 citações directas curtas (entre aspas, com autor, ano e página) e 1 citação longa (linha iniciada com "> ") por subtítulo.
+3. Depois de cada citação escreve 1 a 2 parágrafos de análise: o que o autor defende, como se aplica ao tema e que limites ou contrapontos existem.
+4. Confronta autores entre si, mostrando convergências e divergências.
+5. Todas as obras citadas devem constar nas REFERÊNCIAS, completas.`
+    : "";
+
   const prompt = `Gere um trabalho académico COMPLETO em ${language}, com EXTENSÃO PROPORCIONAL ao número de páginas pedidas (${pages} páginas A4 ≈ ${totalWords} palavras de conteúdo).
 
 NÃO RESUMAS. NÃO ABREVIES. Cumpre os mínimos de palavras indicados em cada secção.
@@ -162,7 +212,7 @@ NÃO RESUMAS. NÃO ABREVIES. Cumpre os mínimos de palavras indicados em cada se
 Estrutura obrigatória (usa exactamente estes cabeçalhos em MAIÚSCULAS, em linhas isoladas, sem numeração nem markdown nos cabeçalhos principais):
 
 ÍNDICE
-Lista numerada de todos os títulos e subtítulos (apenas a lista).
+Lista numerada de todos os títulos e subtítulos (apenas a lista, sem texto explicativo).
 
 RESUMO
 Resumo académico de aproximadamente ${resumoWords} palavras, em texto corrido.
@@ -173,7 +223,8 @@ Cerca de ${introWords} palavras, distribuídas em 3 a 6 parágrafos com contextu
 DESENVOLVIMENTO
 Esta é a parte MAIS LONGA: aproximadamente ${devWords} palavras no total.
 Divide em ${devSubs} subtítulos numerados. Para CADA subtítulo escreve OBRIGATORIAMENTE cerca de ${wordsPerSub} palavras (3 a 6 parágrafos completos) com fundamentação teórica, definições, exemplos práticos, análise crítica e ligações ao tema.
-PROIBIDO escrever apenas o subtítulo sem desenvolver o conteúdo por baixo.
+REGRA CRÍTICA: NUNCA escrevas a lista dos subtítulos no início do DESENVOLVIMENTO. Não repitas o índice aqui. Escreve o primeiro subtítulo e, IMEDIATAMENTE abaixo dele, os seus parágrafos completos; só depois passas ao subtítulo seguinte.
+PROIBIDO escrever dois subtítulos seguidos sem texto entre eles.
 Formato de cada subtítulo:
 **Nome do Subtítulo**
 [parágrafos completos de texto académico, ~${wordsPerSub} palavras]
@@ -182,7 +233,8 @@ CONCLUSÃO
 Cerca de ${conclWords} palavras em 3 a 5 parágrafos retomando objectivos, sintetizando resultados e apontando limitações e investigações futuras.
 
 REFERÊNCIAS
-Lista de ${Math.max(5, Math.min(15, pages))} referências reais no formato ${body.style || "APA"}, uma por linha.
+Lista de ${Math.max(5, Math.min(15, pages))} referências reais e completas (autor, ano, título, editora/revista) no formato ${body.style || "APA"}, uma por linha.
+PROIBIDO escrever textos de exemplo como "Adicione aqui as referências" ou referências inventadas sem autor e ano.
 
 Dados do trabalho:
 - Nível de ensino: ${body.educationLevel}
@@ -194,7 +246,7 @@ Dados do trabalho:
 - Tom: formal académico, em português de Portugal${body.languageEn ? " e inglês" : ""}
 
 IMPORTANTE: Conta as palavras à medida que escreves. Se chegares ao fim do desenvolvimento com menos palavras do que o pedido, ADICIONA mais parágrafos a cada subtítulo até atingir o alvo. Não termines antes de cumprir a extensão.
-${institutionContext}${citationRules}
+${humanizeRules}${workTypeRules}${institutionContext}${citationRules}
 ${pdfContext}`;
 
 
@@ -203,7 +255,7 @@ ${pdfContext}`;
     if (!r.ok) return res.status(r.status).json({ error: r.error });
     const text = r.text;
 
-    if (!text) return res.status(500).json({ error: "Resposta vazia da IA." });
+    if (!text) return res.status(500).json({ error: "Por favor gere novamente." });
 
     const academicWork = parseAcademicWork(text, body);
     return res.status(200).json({ work: academicWork });

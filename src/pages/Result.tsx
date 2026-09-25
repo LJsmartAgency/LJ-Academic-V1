@@ -8,6 +8,8 @@ import {
   AlignmentType,
   PageBreak,
   BorderStyle,
+  TabStopType,
+  LeaderType,
 } from "docx";
 import ReactMarkdown from "react-markdown";
 
@@ -231,6 +233,64 @@ const buildBackCoverParagraphs = (work: AcademicWork, form: WorkFormValues): Par
   return p;
 };
 
+// Extrai os subtítulos reais de uma secção (linhas em negrito e/ou numeradas)
+const extractSubheadings = (content: string): string[] => {
+  const out: string[] = [];
+  for (const raw of normalizeSubtitles(content).split(/\n+/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith(">")) continue;
+    const bold = line.match(/^\*\*([^*]+)\*\*$/);
+    const candidate = bold ? bold[1].trim() : /^\d+(\.\d+)*\s+\S/.test(line) && line.length <= 90 ? line : null;
+    if (candidate && !out.includes(candidate)) out.push(candidate);
+  }
+  return out;
+};
+
+// Constrói o índice a partir das secções e subtítulos reais, com páginas estimadas
+const buildIndexEntries = (work: AcademicWork): { label: string; page: number; level: number }[] => {
+  const entries: { label: string; page: number; level: number }[] = [];
+  const wordsPerPage = 300;
+  let page = 2; // página 1 é o índice
+
+  const sectionByPrefix = (prefix: string) =>
+    work.sections.find((s) => s.heading.toLowerCase().startsWith(prefix));
+
+  const pushSection = (label: string, content: string, withSubs: boolean) => {
+    entries.push({ label, page, level: 0 });
+    if (withSubs) {
+      const subs = extractSubheadings(content);
+      const words = content.split(/\s+/).filter(Boolean).length;
+      const pagesUsed = Math.max(1, Math.round(words / wordsPerPage));
+      subs.forEach((sub, i) => {
+        entries.push({
+          label: sub,
+          page: page + Math.floor((i * pagesUsed) / Math.max(1, subs.length)),
+          level: 1,
+        });
+      });
+      page += pagesUsed;
+    } else {
+      const words = content.split(/\s+/).filter(Boolean).length;
+      page += Math.max(1, Math.round(words / wordsPerPage));
+    }
+  };
+
+  const resumo = sectionByPrefix("resumo");
+  pushSection("Resumo", resumo?.content || work.summary, false);
+
+  const intro = sectionByPrefix("introdu");
+  if (intro?.content) pushSection("Introdução", intro.content, false);
+
+  const dev = sectionByPrefix("desenvolv");
+  if (dev?.content) pushSection("Desenvolvimento", dev.content, true);
+
+  const conc = sectionByPrefix("conclus");
+  if (conc?.content) pushSection("Conclusão", conc.content, false);
+
+  entries.push({ label: "Referência bibliográfica", page, level: 0 });
+  return entries;
+};
+
 const downloadWord = async (work: AcademicWork, form?: WorkFormValues) => {
   const paragraphs: Paragraph[] = [];
 
@@ -241,10 +301,19 @@ const downloadWord = async (work: AcademicWork, form?: WorkFormValues) => {
     }),
   );
 
-  const indiceSection = work.sections.find((s) => s.heading.toLowerCase().startsWith("índice") || s.heading.toLowerCase().startsWith("indice"));
-  if (indiceSection) {
-    const indiceParagraphs = markdownToParagraphs(indiceSection.content, { normalize: false });
-    paragraphs.push(...indiceParagraphs);
+  // Índice construído automaticamente a partir das secções e subtítulos reais do trabalho
+  const indexEntries = buildIndexEntries(work);
+  for (const entry of indexEntries) {
+    paragraphs.push(
+      new Paragraph({
+        tabStops: [{ type: TabStopType.RIGHT, position: 9000, leader: LeaderType.DOT }],
+        indent: entry.level > 0 ? { left: 400 } : undefined,
+        children: [
+          new TextRun({ text: entry.label, bold: entry.level === 0 }),
+          new TextRun({ text: `\t${entry.page}` }),
+        ],
+      }),
+    );
   }
 
 
@@ -438,7 +507,7 @@ const Result = () => {
   }
 
   const fullText = buildPlainText(work);
-  const indexItems = ["Título", ...work.sections.map((s) => s.heading), "Referência bibliográfica"];
+  const indexItems = buildIndexEntries(work).map((e) => (e.level > 0 ? `   ${e.label}` : e.label));
 
   return (
     <div className="min-h-screen bg-background text-foreground">
