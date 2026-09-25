@@ -48,6 +48,31 @@ function detectSection(line: string): "indice" | "resumo" | "intro" | "dev" | "c
   return null;
 }
 
+// Remove a lista de subtítulos que a IA às vezes coloca no início do Desenvolvimento
+function stripDevOutline(dev: string): string {
+  const lines = dev.split(/\n/);
+  const isHeadingLike = (l: string) => {
+    const t = l.trim().replace(/^\*+|\*+$/g, "").trim();
+    if (!t || t.length > 90) return false;
+    return /^\d+(\.\d+)*\s+\S/.test(t) && !/[.;:]$/.test(t);
+  };
+  const titleOf = (l: string) => l.trim().replace(/^\*+|\*+$/g, "").replace(/^\d+(\.\d+)*\s+/, "").trim().toLowerCase();
+
+  let i = 0;
+  const outline: number[] = [];
+  while (i < lines.length) {
+    if (!lines[i].trim()) { i++; continue; }
+    if (isHeadingLike(lines[i])) { outline.push(i); i++; continue; }
+    break;
+  }
+  // Só remove se houver 2+ títulos seguidos sem texto e se repetirem mais abaixo
+  if (outline.length < 2) return dev;
+  const rest = lines.slice(i).join("\n").toLowerCase();
+  const repeated = outline.filter((idx) => rest.includes(titleOf(lines[idx])));
+  if (repeated.length < Math.ceil(outline.length / 2)) return dev;
+  return lines.slice(i).join("\n").trim();
+}
+
 function parseAcademicWork(text: string, body: WorkFormPayload) {
   const buckets = { indice: "", resumo: "", intro: "", dev: "", concl: "" };
   const refs: string[] = [];
