@@ -185,6 +185,7 @@ Lista de ${Math.max(5, Math.min(15, pages))} referências reais no formato ${bod
 
 Dados do trabalho:
 - Nível de ensino: ${body.educationLevel}
+- Instituição: ${university || "não indicada"}
 - Tipo: ${body.workType}
 - Área: ${body.area}
 - Tema: ${body.theme}${body.description ? `\n- Descrição/foco: ${body.description}` : ""}
@@ -192,7 +193,9 @@ Dados do trabalho:
 - Tom: formal académico, em português de Portugal${body.languageEn ? " e inglês" : ""}
 
 IMPORTANTE: Conta as palavras à medida que escreves. Se chegares ao fim do desenvolvimento com menos palavras do que o pedido, ADICIONA mais parágrafos a cada subtítulo até atingir o alvo. Não termines antes de cumprir a extensão.
+${institutionContext}${citationRules}
 ${pdfContext}`;
+
 
   try {
     const r = await groqChat(GROQ_API_KEY, [{ role: "user", content: prompt }], { temperature: 0.75, max_tokens: targetTokens });
