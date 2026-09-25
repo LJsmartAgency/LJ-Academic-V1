@@ -18,7 +18,13 @@ interface WorkFormPayload {
   tone?: string;
   pdfName?: string;
   pdfText?: string;
+  coverUniversity?: string;
+  coverFaculty?: string;
+  coverCourse?: string;
+  coverSubject?: string;
+  coverLocation?: string;
 }
+
 
 function stripHeadingMarkup(line: string): string {
   // Remove markdown (**, ##, #), numeração (1., 1), I., II.), bullets e espaços
@@ -55,8 +61,9 @@ function parseAcademicWork(text: string, body: WorkFormPayload) {
       if (current && current !== "refs") buckets[current] += "\n";
       continue;
     }
-    const section = detectSection(line);
+    const section = /^\s*>/.test(line) ? null : detectSection(line);
     if (section) { current = section; continue; }
+
     if (!current) { current = "intro"; }
     if (current === "refs") {
       const cleaned = line.replace(/^[\-\*\d\.\)\s]+/, "").trim();
@@ -123,6 +130,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Tokens: ~1.5 tokens/palavra PT + folga; cap a 8000 (limite Groq) — se pedido for maior, avisar prompt
   const targetTokens = Math.min(8000, Math.round(totalWords * 1.6) + 500);
 
+  // Normas metodológicas: adaptadas à instituição escrita pelo estudante
+  const university = (body.coverUniversity || "").trim();
+  const mzPattern = /(moçambi|mocambi|eduardo mondlane|\buem\b|pedagógic|pedagogic|\bup\b|unilicungo|licungo|unisave|save|unirovuma|rovuma|unizambeze|zambeze|unilúrio|unilurio|lúrio|lurio|isctem|católica de moçambique|catolica de mocambique|\bucm\b|politécnica|politecnica|isutc|\budm\b|\bisri\b|maputo|beira|nampula|quelimane|tete|pemba|xai-xai|inhambane|chimoio|lichinga)/i;
+  const isMz = mzPattern.test(university) || mzPattern.test(body.coverLocation || "");
+
+  const institutionContext = university
+    ? `\n\nNORMAS DA INSTITUIÇÃO
+A instituição indicada pelo estudante é: "${university}"${body.coverFaculty ? ` — ${body.coverFaculty}` : ""}${body.coverCourse ? ` (${body.coverCourse})` : ""}.
+Adapta a linguagem, a terminologia académica e o formato de citação ao regulamento metodológico habitual desta instituição.${
+        isMz
+          ? `
+Esta é uma instituição do sistema de ensino superior de Moçambique: usa português de Portugal (não do Brasil), terminologia moçambicana (cadeira, discente, docente, ano lectivo, grupo nº) e, quando o tema o permitir, inclui contexto, legislação e autores moçambicanos relevantes, além da literatura internacional da área.`
+          : `
+Se não conheceres o regulamento exacto desta instituição, aplica a norma internacional padrão ${body.style || "APA (7.ª edição)"}.`
+      }`
+    : "";
+
+  const citationRules = `\n\nREGRAS OBRIGATÓRIAS DE CITAÇÃO (norma ${body.style || "APA"}${isMz ? ", uso académico em Moçambique" : ""})
+1. Citação directa CURTA (até 3 linhas): dentro do parágrafo, entre aspas, com autor, ano e página. Ex.: Segundo Sitoe (2021, p. 45), "o desenvolvimento comunitário exige...".
+2. Citação directa LONGA (mais de 3 linhas): em parágrafo próprio, SEM aspas, começando obrigatoriamente a linha com "> " (sinal de maior e um espaço). Termina com (Autor, Ano, p. XX). Esta marca é usada para aplicar o recuo de 4 cm, letra 10 e espaçamento simples no documento final.
+3. Citação INDIRECTA (paráfrase): sem aspas e sem recuo, apenas (Autor, Ano) ou "Conforme Mazula (2015)...".
+4. Mais de três autores: (Cossa et al., 2020). Citação de citação: (Mondlane, 1969, apud Nhantumbo, 2018, p. 25).
+5. Inclui pelo menos 3 citações directas curtas e 2 citações longas no desenvolvimento, e TODOS os autores citados no texto devem aparecer nas REFERÊNCIAS.`;
+
+
   const prompt = `Gere um trabalho académico COMPLETO em ${language}, com EXTENSÃO PROPORCIONAL ao número de páginas pedidas (${pages} páginas A4 ≈ ${totalWords} palavras de conteúdo).
 
 NÃO RESUMAS. NÃO ABREVIES. Cumpre os mínimos de palavras indicados em cada secção.
@@ -154,6 +186,7 @@ Lista de ${Math.max(5, Math.min(15, pages))} referências reais no formato ${bod
 
 Dados do trabalho:
 - Nível de ensino: ${body.educationLevel}
+- Instituição: ${university || "não indicada"}
 - Tipo: ${body.workType}
 - Área: ${body.area}
 - Tema: ${body.theme}${body.description ? `\n- Descrição/foco: ${body.description}` : ""}
@@ -161,7 +194,9 @@ Dados do trabalho:
 - Tom: formal académico, em português de Portugal${body.languageEn ? " e inglês" : ""}
 
 IMPORTANTE: Conta as palavras à medida que escreves. Se chegares ao fim do desenvolvimento com menos palavras do que o pedido, ADICIONA mais parágrafos a cada subtítulo até atingir o alvo. Não termines antes de cumprir a extensão.
+${institutionContext}${citationRules}
 ${pdfContext}`;
+
 
   try {
     const r = await groqChat(GROQ_API_KEY, [{ role: "user", content: prompt }], { temperature: 0.75, max_tokens: targetTokens });

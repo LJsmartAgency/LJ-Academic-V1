@@ -46,6 +46,23 @@ const markdownToParagraphs = (text: string, options: { normalize?: boolean } = {
   const lines = source.split(/\n+/).filter(Boolean);
 
   for (const rawLine of lines) {
+    // Citação directa longa (mais de 3 linhas): marcada com "> " pela IA
+    const longQuote = rawLine.match(/^\s*>\s?(.*)$/);
+    if (longQuote) {
+      const quoteText = longQuote[1].replace(/\*+/g, "").replace(/^["“](.*)["”]$/, "$1").trim();
+      if (quoteText) {
+        paragraphs.push(
+          new Paragraph({
+            alignment: AlignmentType.JUSTIFIED,
+            indent: { left: 2268 }, // 4 cm
+            spacing: { line: 240, before: 200, after: 200 }, // espaçamento simples
+            children: [new TextRun({ text: quoteText, size: 20 })], // 10 pt
+          }),
+        );
+      }
+      continue;
+    }
+
     const line = rawLine.replace(/^\*\s+/, "");
     const runs: TextRun[] = [];
     let lastIndex = 0;
@@ -73,6 +90,7 @@ const markdownToParagraphs = (text: string, options: { normalize?: boolean } = {
       }),
     );
   }
+
 
   return paragraphs;
 };
