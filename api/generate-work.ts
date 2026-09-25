@@ -187,7 +187,7 @@ NÃO RESUMAS. NÃO ABREVIES. Cumpre os mínimos de palavras indicados em cada se
 Estrutura obrigatória (usa exactamente estes cabeçalhos em MAIÚSCULAS, em linhas isoladas, sem numeração nem markdown nos cabeçalhos principais):
 
 ÍNDICE
-Lista numerada de todos os títulos e subtítulos (apenas a lista).
+Lista numerada de todos os títulos e subtítulos (apenas a lista, sem texto explicativo).
 
 RESUMO
 Resumo académico de aproximadamente ${resumoWords} palavras, em texto corrido.
@@ -198,7 +198,8 @@ Cerca de ${introWords} palavras, distribuídas em 3 a 6 parágrafos com contextu
 DESENVOLVIMENTO
 Esta é a parte MAIS LONGA: aproximadamente ${devWords} palavras no total.
 Divide em ${devSubs} subtítulos numerados. Para CADA subtítulo escreve OBRIGATORIAMENTE cerca de ${wordsPerSub} palavras (3 a 6 parágrafos completos) com fundamentação teórica, definições, exemplos práticos, análise crítica e ligações ao tema.
-PROIBIDO escrever apenas o subtítulo sem desenvolver o conteúdo por baixo.
+REGRA CRÍTICA: NUNCA escrevas a lista dos subtítulos no início do DESENVOLVIMENTO. Não repitas o índice aqui. Escreve o primeiro subtítulo e, IMEDIATAMENTE abaixo dele, os seus parágrafos completos; só depois passas ao subtítulo seguinte.
+PROIBIDO escrever dois subtítulos seguidos sem texto entre eles.
 Formato de cada subtítulo:
 **Nome do Subtítulo**
 [parágrafos completos de texto académico, ~${wordsPerSub} palavras]
