@@ -61,8 +61,9 @@ function parseAcademicWork(text: string, body: WorkFormPayload) {
       if (current && current !== "refs") buckets[current] += "\n";
       continue;
     }
-    const section = detectSection(line);
+    const section = /^\s*>/.test(line) ? null : detectSection(line);
     if (section) { current = section; continue; }
+
     if (!current) { current = "intro"; }
     if (current === "refs") {
       const cleaned = line.replace(/^[\-\*\d\.\)\s]+/, "").trim();
