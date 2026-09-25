@@ -8,6 +8,8 @@ import {
   AlignmentType,
   PageBreak,
   BorderStyle,
+  TabStopType,
+  LeaderType,
 } from "docx";
 import ReactMarkdown from "react-markdown";
 
@@ -241,10 +243,19 @@ const downloadWord = async (work: AcademicWork, form?: WorkFormValues) => {
     }),
   );
 
-  const indiceSection = work.sections.find((s) => s.heading.toLowerCase().startsWith("índice") || s.heading.toLowerCase().startsWith("indice"));
-  if (indiceSection) {
-    const indiceParagraphs = markdownToParagraphs(indiceSection.content, { normalize: false });
-    paragraphs.push(...indiceParagraphs);
+  // Índice construído automaticamente a partir das secções e subtítulos reais do trabalho
+  const indexEntries = buildIndexEntries(work);
+  for (const entry of indexEntries) {
+    paragraphs.push(
+      new Paragraph({
+        tabStops: [{ type: TabStopType.RIGHT, position: 9000, leader: LeaderType.DOT }],
+        indent: entry.level > 0 ? { left: 400 } : undefined,
+        children: [
+          new TextRun({ text: entry.label, bold: entry.level === 0 }),
+          new TextRun({ text: `\t${entry.page}` }),
+        ],
+      }),
+    );
   }
 
 
