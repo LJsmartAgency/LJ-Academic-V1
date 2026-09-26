@@ -624,10 +624,24 @@ const Result = () => {
 
                 return (
                   <>
-                    {indiceSection && renderSection(indiceSection.heading, indiceSection.content, { normalize: false })}
+                    <article key="indice" className="space-y-3 border-t border-border/60 pt-6 first:border-none first:pt-0">
+                      <h3 className="text-base font-semibold text-foreground">Índice</h3>
+                      <ul className="space-y-1">
+                        {indexEntries.map((entry, i) => (
+                          <li
+                            key={`${entry.label}-${i}`}
+                            className={`flex items-baseline gap-2 ${entry.level > 0 ? "pl-4" : "font-medium text-foreground"}`}
+                          >
+                            <span>{entry.label}</span>
+                            <span className="flex-1 border-b border-dotted border-border/60" />
+                            <span className="text-muted-foreground">{entry.page}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </article>
                     {resumoSection && renderSection("Resumo", resumoSection.content)}
                     {intro && renderSection("Introdução", intro.content)}
-                    {dev && renderSection("Desenvolvimento", dev.content)}
+                    {dev && renderSection("Desenvolvimento", stripSubtitleOutline(dev.content))}
                     {conc && renderSection("Conclusão", conc.content)}
                   </>
                 );
