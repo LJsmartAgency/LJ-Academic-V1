@@ -265,11 +265,24 @@ ${pdfContext}`;
 
 
   try {
-    const r = await groqChat(GROQ_API_KEY, [{ role: "user", content: prompt }], { temperature: 0.75, max_tokens: targetTokens });
-    if (!r.ok) return res.status(r.status).json({ error: r.error });
-    const text = r.text;
+    // Insiste até obter um trabalho com conteúdo real (nunca devolve texto vazio)
+    let text = "";
+    let lastError = "Por favor gere novamente.";
+    for (let attempt = 0; attempt < 3 && !text; attempt++) {
+      const r = await groqChat(
+        GROQ_API_KEY,
+        [{ role: "user", content: prompt }],
+        { temperature: attempt === 0 ? 0.75 : 0.6, max_tokens: targetTokens, minChars: 600 },
+      );
+      if (r.ok) {
+        text = r.text;
+      } else {
+        lastError = r.error;
+        if (r.status === 401) return res.status(401).json({ error: r.error });
+      }
+    }
 
-    if (!text) return res.status(500).json({ error: "Por favor gere novamente." });
+    if (!text) return res.status(503).json({ error: lastError });
 
     const academicWork = parseAcademicWork(text, body);
     return res.status(200).json({ work: academicWork });
