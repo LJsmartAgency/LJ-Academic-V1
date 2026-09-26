@@ -30,12 +30,27 @@ REGRAS OBRIGATÓRIAS:
 - Explica foco, objectivo e problema a estudar de forma concisa.
 - Responde APENAS com o texto da descrição, sem títulos, sem aspas, sem formatação markdown.`;
 
-  try {
-    const r = await groqChat(GROQ_API_KEY, [{ role: "user", content: prompt }], { temperature: 0.6, max_tokens: 1500 });
-    if (!r.ok) return res.status(r.status).json({ error: r.error });
-    let text = r.text;
+  const simplePrompt = `Escreve 2 a 3 frases, em português de Portugal, a descrever o foco e o objectivo de um trabalho académico sobre "${theme}". Máximo 500 caracteres. Responde só com o texto.`;
 
-    if (!text) return res.status(500).json({ error: "A IA devolveu uma resposta vazia." });
+  try {
+    let text = "";
+    let lastError = "Por favor gere novamente.";
+    for (let attempt = 0; attempt < 3 && !text; attempt++) {
+      const r = await groqChat(
+        GROQ_API_KEY,
+        [{ role: "user", content: attempt === 0 ? prompt : simplePrompt }],
+        { temperature: 0.6, max_tokens: 1500, minChars: 60 },
+      );
+      if (r.ok) {
+        text = r.text;
+      } else {
+        lastError = r.error;
+        if (r.status === 401) return res.status(401).json({ error: r.error });
+      }
+    }
+
+    if (!text) return res.status(503).json({ error: lastError });
+
 
     // Sanitização: remover markdown/aspas e garantir limite de 600 caracteres
     text = text.replace(/^["'`*_#\s]+|["'`*_#\s]+$/g, "").replace(/\s+/g, " ").trim();
