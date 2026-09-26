@@ -41,6 +41,45 @@ const normalizeSubtitles = (text: string): string => {
   return result;
 };
 
+// Remove a lista de subtítulos que a IA às vezes despeja no início do Desenvolvimento
+const stripSubtitleOutline = (text: string): string => {
+  const lines = text.split(/\n/);
+  const headingLike = (l: string) => {
+    const t = l.trim().replace(/^\*+|\*+$/g, "").trim();
+    if (!t || t.length > 100) return false;
+    return /^\d+(\s*\.\s*\d+)*\s*\.?\s+\S/.test(t) && !/[;:]$/.test(t) && !/\.\s*$/.test(t);
+  };
+  const titleOf = (l: string) =>
+    l.trim().replace(/^\*+|\*+$/g, "").replace(/^[\d.\s]+/, "").trim().toLowerCase();
+
+  // procura um bloco de 3+ cabeçalhos consecutivos nas primeiras linhas
+  let start = -1;
+  let end = -1;
+  let i = 0;
+  let seen = 0;
+  while (i < lines.length && seen < 30) {
+    if (!lines[i].trim()) { i++; continue; }
+    seen++;
+    if (headingLike(lines[i])) {
+      let j = i;
+      while (j < lines.length && (!lines[j].trim() || headingLike(lines[j]))) j++;
+      const block = lines.slice(i, j).filter((l) => l.trim());
+      if (block.length >= 3) { start = i; end = j; break; }
+      i = j;
+      continue;
+    }
+    i++;
+  }
+  if (start < 0) return text;
+
+  const block = lines.slice(start, end).filter((l) => l.trim());
+  const rest = lines.slice(end).join("\n").toLowerCase();
+  const repeated = block.filter((l) => titleOf(l) && rest.includes(titleOf(l)));
+  if (repeated.length < Math.ceil(block.length / 2)) return text;
+
+  return [...lines.slice(0, start), ...lines.slice(end)].join("\n").trim();
+};
+
 const markdownToParagraphs = (text: string, options: { normalize?: boolean } = {}): Paragraph[] => {
   const { normalize = true } = options;
   const paragraphs: Paragraph[] = [];
@@ -282,7 +321,7 @@ const buildIndexEntries = (work: AcademicWork): { label: string; page: number; l
   if (intro?.content) pushSection("Introdução", intro.content, false);
 
   const dev = sectionByPrefix("desenvolv");
-  if (dev?.content) pushSection("Desenvolvimento", dev.content, true);
+  if (dev?.content) pushSection("Desenvolvimento", stripSubtitleOutline(dev.content), true);
 
   const conc = sectionByPrefix("conclus");
   if (conc?.content) pushSection("Conclusão", conc.content, false);
@@ -348,7 +387,7 @@ const downloadWord = async (work: AcademicWork, form?: WorkFormValues) => {
         children: [new TextRun({ text: "Desenvolvimento", bold: true })],
       }),
     );
-    paragraphs.push(...markdownToParagraphs(dev.content));
+    paragraphs.push(...markdownToParagraphs(stripSubtitleOutline(dev.content)));
   }
 
   if (conc) {
@@ -507,7 +546,6 @@ const Result = () => {
   }
 
   const fullText = buildPlainText(work);
-  const indexItems = buildIndexEntries(work).map((e) => (e.level > 0 ? `   ${e.label}` : e.label));
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -564,9 +602,7 @@ const Result = () => {
 
             <div className="space-y-10 text-sm leading-relaxed">
               {(() => {
-                const indiceSection = work.sections.find(
-                  (s) => s.heading.toLowerCase().startsWith("índice") || s.heading.toLowerCase().startsWith("indice"),
-                );
+                const indexEntries = buildIndexEntries(work);
                 const resumoSection = work.sections.find((s) => s.heading.toLowerCase().startsWith("resumo"));
                 const intro = work.sections.find((s) => s.heading.toLowerCase().startsWith("introdu"));
                 const dev = work.sections.find((s) => s.heading.toLowerCase().startsWith("desenvolv"));
@@ -587,10 +623,24 @@ const Result = () => {
 
                 return (
                   <>
-                    {indiceSection && renderSection(indiceSection.heading, indiceSection.content, { normalize: false })}
+                    <article key="indice" className="space-y-3 border-t border-border/60 pt-6 first:border-none first:pt-0">
+                      <h3 className="text-base font-semibold text-foreground">Índice</h3>
+                      <ul className="space-y-1">
+                        {indexEntries.map((entry, i) => (
+                          <li
+                            key={`${entry.label}-${i}`}
+                            className={`flex items-baseline gap-2 ${entry.level > 0 ? "pl-4" : "font-medium text-foreground"}`}
+                          >
+                            <span>{entry.label}</span>
+                            <span className="flex-1 border-b border-dotted border-border/60" />
+                            <span className="text-muted-foreground">{entry.page}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </article>
                     {resumoSection && renderSection("Resumo", resumoSection.content)}
                     {intro && renderSection("Introdução", intro.content)}
-                    {dev && renderSection("Desenvolvimento", dev.content)}
+                    {dev && renderSection("Desenvolvimento", stripSubtitleOutline(dev.content))}
                     {conc && renderSection("Conclusão", conc.content)}
                   </>
                 );

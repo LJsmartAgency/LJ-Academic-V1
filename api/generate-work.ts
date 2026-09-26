@@ -53,24 +53,38 @@ function stripDevOutline(dev: string): string {
   const lines = dev.split(/\n/);
   const isHeadingLike = (l: string) => {
     const t = l.trim().replace(/^\*+|\*+$/g, "").trim();
-    if (!t || t.length > 90) return false;
-    return /^\d+(\.\d+)*\s+\S/.test(t) && !/[.;:]$/.test(t);
+    if (!t || t.length > 100) return false;
+    return /^\d+(\s*\.\s*\d+)*\s*\.?\s+\S/.test(t) && !/[;:]$/.test(t) && !/\.\s*$/.test(t);
   };
-  const titleOf = (l: string) => l.trim().replace(/^\*+|\*+$/g, "").replace(/^\d+(\.\d+)*\s+/, "").trim().toLowerCase();
+  const titleOf = (l: string) =>
+    l.trim().replace(/^\*+|\*+$/g, "").replace(/^[\d.\s]+/, "").trim().toLowerCase();
 
+  // Procura um bloco de 3+ cabeçalhos consecutivos (sem texto entre eles) nas primeiras linhas
+  let start = -1;
+  let end = -1;
   let i = 0;
-  const outline: number[] = [];
-  while (i < lines.length) {
+  let seen = 0;
+  while (i < lines.length && seen < 30) {
     if (!lines[i].trim()) { i++; continue; }
-    if (isHeadingLike(lines[i])) { outline.push(i); i++; continue; }
-    break;
+    seen++;
+    if (isHeadingLike(lines[i])) {
+      let j = i;
+      while (j < lines.length && (!lines[j].trim() || isHeadingLike(lines[j]))) j++;
+      const block = lines.slice(i, j).filter((l) => l.trim());
+      if (block.length >= 3) { start = i; end = j; break; }
+      i = j;
+      continue;
+    }
+    i++;
   }
-  // Só remove se houver 2+ títulos seguidos sem texto e se repetirem mais abaixo
-  if (outline.length < 2) return dev;
-  const rest = lines.slice(i).join("\n").toLowerCase();
-  const repeated = outline.filter((idx) => rest.includes(titleOf(lines[idx])));
-  if (repeated.length < Math.ceil(outline.length / 2)) return dev;
-  return lines.slice(i).join("\n").trim();
+  if (start < 0) return dev;
+
+  const block = lines.slice(start, end).filter((l) => l.trim());
+  const rest = lines.slice(end).join("\n").toLowerCase();
+  const repeated = block.filter((l) => titleOf(l) && rest.includes(titleOf(l)));
+  if (repeated.length < Math.ceil(block.length / 2)) return dev;
+
+  return [...lines.slice(0, start), ...lines.slice(end)].join("\n").trim();
 }
 
 function parseAcademicWork(text: string, body: WorkFormPayload) {
@@ -251,11 +265,24 @@ ${pdfContext}`;
 
 
   try {
-    const r = await groqChat(GROQ_API_KEY, [{ role: "user", content: prompt }], { temperature: 0.75, max_tokens: targetTokens });
-    if (!r.ok) return res.status(r.status).json({ error: r.error });
-    const text = r.text;
+    // Insiste até obter um trabalho com conteúdo real (nunca devolve texto vazio)
+    let text = "";
+    let lastError = "Por favor gere novamente.";
+    for (let attempt = 0; attempt < 3 && !text; attempt++) {
+      const r = await groqChat(
+        GROQ_API_KEY,
+        [{ role: "user", content: prompt }],
+        { temperature: attempt === 0 ? 0.75 : 0.6, max_tokens: targetTokens, minChars: 600 },
+      );
+      if (r.ok) {
+        text = r.text;
+      } else {
+        lastError = r.error;
+        if (r.status === 401) return res.status(401).json({ error: r.error });
+      }
+    }
 
-    if (!text) return res.status(500).json({ error: "Por favor gere novamente." });
+    if (!text) return res.status(503).json({ error: lastError });
 
     const academicWork = parseAcademicWork(text, body);
     return res.status(200).json({ work: academicWork });

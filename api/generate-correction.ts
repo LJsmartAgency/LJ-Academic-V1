@@ -71,11 +71,12 @@ Responde APENAS com o guião de correção em Markdown.`;
           { type: "image_url", image_url: { url: `data:${mimeType || "image/jpeg"};base64,${imageBase64}` } },
         ],
       },
-    ], { temperature: 0.5, max_tokens: 8000 }, "vision");
+    ], { temperature: 0.5, max_tokens: 8000, minChars: 100 }, "vision");
     if (!r.ok) return res.status(r.status).json({ error: r.error });
     const text = r.text;
 
-    if (!text) return res.status(500).json({ error: "A IA devolveu uma resposta vazia." });
+    if (!text) return res.status(503).json({ error: "Por favor gere novamente." });
+
 
     return res.status(200).json({ correction: text });
   } catch (error) {

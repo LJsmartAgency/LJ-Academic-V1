@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { workFormSchema, type WorkFormValues, generateAcademicWork, type AcademicWork } from "@/lib/generator";
+import { workFormSchema, type WorkFormValues, type AcademicWork } from "@/lib/generator";
 import { invokeFunction } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import * as pdfjsLib from "pdfjs-dist";
@@ -136,25 +136,27 @@ const CreateWork = () => {
         ...values, pdfName: pdfFile ? pdfFile.name : undefined, pdfText,
       });
 
-      let work: AcademicWork;
+      const work = (data as { work?: AcademicWork } | null)?.work;
 
-      if (error || !data || !(data as { work?: AcademicWork }).work) {
+      // Nunca avançamos com um trabalho incompleto: fica no formulário para tentar de novo
+      if (error || !work || !work.sections?.some((s) => (s.content || "").trim().length > 200)) {
         console.error("Erro na função generate-work", error);
         toast({
-          title: "IA indisponível",
-          description: error || "A IA não respondeu, por isso foi usada a geração local.",
+          title: "Não foi possível concluir",
+          description: error || "O trabalho não ficou completo. Por favor gere novamente.",
           variant: "destructive",
         });
-        work = generateAcademicWork(values);
-      } else {
-        work = (data as { work: AcademicWork }).work;
+        return;
       }
 
       navigate("/resultado", { state: { work, form: values } });
     } catch (err) {
       console.error("Erro ao chamar generate-work", err);
-      const work = generateAcademicWork(values);
-      navigate("/resultado", { state: { work, form: values } });
+      toast({
+        title: "Não foi possível concluir",
+        description: "Falha ao contactar o servidor. Por favor gere novamente.",
+        variant: "destructive",
+      });
     }
   };
   return (
