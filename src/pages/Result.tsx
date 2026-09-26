@@ -387,7 +387,7 @@ const downloadWord = async (work: AcademicWork, form?: WorkFormValues) => {
         children: [new TextRun({ text: "Desenvolvimento", bold: true })],
       }),
     );
-    paragraphs.push(...markdownToParagraphs(dev.content));
+    paragraphs.push(...markdownToParagraphs(stripSubtitleOutline(dev.content)));
   }
 
   if (conc) {
