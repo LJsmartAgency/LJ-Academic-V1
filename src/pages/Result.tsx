@@ -41,6 +41,45 @@ const normalizeSubtitles = (text: string): string => {
   return result;
 };
 
+// Remove a lista de subtítulos que a IA às vezes despeja no início do Desenvolvimento
+const stripSubtitleOutline = (text: string): string => {
+  const lines = text.split(/\n/);
+  const headingLike = (l: string) => {
+    const t = l.trim().replace(/^\*+|\*+$/g, "").trim();
+    if (!t || t.length > 100) return false;
+    return /^\d+(\s*\.\s*\d+)*\s*\.?\s+\S/.test(t) && !/[;:]$/.test(t) && !/\.\s*$/.test(t);
+  };
+  const titleOf = (l: string) =>
+    l.trim().replace(/^\*+|\*+$/g, "").replace(/^[\d.\s]+/, "").trim().toLowerCase();
+
+  // procura um bloco de 3+ cabeçalhos consecutivos nas primeiras linhas
+  let start = -1;
+  let end = -1;
+  let i = 0;
+  let seen = 0;
+  while (i < lines.length && seen < 30) {
+    if (!lines[i].trim()) { i++; continue; }
+    seen++;
+    if (headingLike(lines[i])) {
+      let j = i;
+      while (j < lines.length && (!lines[j].trim() || headingLike(lines[j]))) j++;
+      const block = lines.slice(i, j).filter((l) => l.trim());
+      if (block.length >= 3) { start = i; end = j; break; }
+      i = j;
+      continue;
+    }
+    i++;
+  }
+  if (start < 0) return text;
+
+  const block = lines.slice(start, end).filter((l) => l.trim());
+  const rest = lines.slice(end).join("\n").toLowerCase();
+  const repeated = block.filter((l) => titleOf(l) && rest.includes(titleOf(l)));
+  if (repeated.length < Math.ceil(block.length / 2)) return text;
+
+  return [...lines.slice(0, start), ...lines.slice(end)].join("\n").trim();
+};
+
 const markdownToParagraphs = (text: string, options: { normalize?: boolean } = {}): Paragraph[] => {
   const { normalize = true } = options;
   const paragraphs: Paragraph[] = [];
