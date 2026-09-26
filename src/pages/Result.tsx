@@ -321,7 +321,7 @@ const buildIndexEntries = (work: AcademicWork): { label: string; page: number; l
   if (intro?.content) pushSection("Introdução", intro.content, false);
 
   const dev = sectionByPrefix("desenvolv");
-  if (dev?.content) pushSection("Desenvolvimento", dev.content, true);
+  if (dev?.content) pushSection("Desenvolvimento", stripSubtitleOutline(dev.content), true);
 
   const conc = sectionByPrefix("conclus");
   if (conc?.content) pushSection("Conclusão", conc.content, false);
