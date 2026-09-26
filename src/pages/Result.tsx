@@ -603,9 +603,7 @@ const Result = () => {
 
             <div className="space-y-10 text-sm leading-relaxed">
               {(() => {
-                const indiceSection = work.sections.find(
-                  (s) => s.heading.toLowerCase().startsWith("índice") || s.heading.toLowerCase().startsWith("indice"),
-                );
+                const indexEntries = buildIndexEntries(work);
                 const resumoSection = work.sections.find((s) => s.heading.toLowerCase().startsWith("resumo"));
                 const intro = work.sections.find((s) => s.heading.toLowerCase().startsWith("introdu"));
                 const dev = work.sections.find((s) => s.heading.toLowerCase().startsWith("desenvolv"));
